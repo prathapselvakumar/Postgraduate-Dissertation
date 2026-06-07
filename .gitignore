@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.csv
+Output Logs/
+*.aux
+*.log
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+.DS_Store
+.agents/
+Code/Output Logs/
+.vscode/

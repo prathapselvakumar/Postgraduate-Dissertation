@@ -1,0 +1,259 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{setspace}
+\usepackage{titlesec}
+\usepackage{parskip}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{booktabs}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=blue,
+    citecolor=blue
+}
+
+\setstretch{1.15}
+
+\titleformat{\section}{\large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection}{1em}{}
+
+\title{\textbf{Dissertation Topic Proposal}\\[0.5em]
+\large Visual Causal Chains: Long-Horizon Credit Assignment in Reinforcement Learning using Vision-Based Event Memory}
+\author{Prathap Selvakumar}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+Reinforcement Learning (RL) has achieved strong performance in sequential decision-making tasks, especially in environments where actions lead to immediate or short-term rewards. However, many real-world robotic and embodied intelligence problems involve \textit{delayed consequences}, where an action taken at one point in time only influences reward much later. This creates the well-known \textbf{long-horizon credit assignment problem}, where the agent struggles to determine which past action was truly responsible for a future outcome.
+
+For example, an agent may activate a switch, causing a hidden environmental change, and only receive a reward several minutes later after a long sequence of unrelated observations and actions. Standard RL methods often fail in such settings because reward signals become too temporally distant from the causative action. While recurrent networks and transformer-based memory architectures partially address temporal dependency, they generally store large amounts of trajectory data without explicitly identifying which events are causally meaningful.
+
+This dissertation proposes a novel framework called \textbf{Visual Causal Chains}, in which a Computer Vision (CV) module detects significant visual state transitions, such as a door opening, an object disappearing, a light changing state, or a path becoming accessible. These events are stored as \textbf{causal bookmarks} in a long-term memory bank. When a delayed reward is later received, the RL agent uses an attention-based retrieval mechanism to revisit these bookmarked visual events and identify the most likely causal sequence that led to the reward.
+
+The central idea is that visually meaningful environmental changes provide a more interpretable and structured basis for credit assignment than relying solely on value propagation through long trajectories. By integrating event-driven visual memory with RL, this work aims to improve policy learning in environments with sparse rewards, delayed consequences, and complex causal dependencies.
+
+\section{Problem Statement}
+
+Traditional RL agents perform poorly in tasks where rewards are delayed over long time horizons. In such settings, the agent lacks an effective mechanism to identify which earlier observation or action caused the eventual reward. Existing memory-based approaches typically retain full trajectories or latent states, but they do not explicitly isolate visually important causal events. As a result, learning remains inefficient, unstable, and difficult to interpret.
+
+The problem addressed in this dissertation is therefore:
+
+\begin{quote}
+How can an RL agent use computer vision to detect, store, and retrieve visually significant state changes in order to improve long-horizon credit assignment under delayed reward conditions?
+\end{quote}
+
+\section{Aim}
+
+The aim of this dissertation is to develop a vision-guided memory framework that enables reinforcement learning agents to identify and exploit causal visual events for long-term credit assignment.
+
+\section{Objectives}
+
+The proposed work has the following objectives:
+
+\begin{enumerate}[label=\arabic*.]
+    \item To design a computer vision module capable of detecting major visual state changes in an environment.
+    \item To define an event-bookmarking mechanism that stores important visual frames or embeddings in a structured long-term memory bank.
+    \item To develop an attention-based retrieval method that links delayed rewards to previously stored causal events.
+    \item To integrate the proposed visual causal memory system with a reinforcement learning agent.
+    \item To evaluate whether the proposed framework improves learning efficiency, reward convergence, and interpretability in delayed-reward tasks.
+\end{enumerate}
+
+\section{Research Questions}
+
+This dissertation will investigate the following research questions:
+
+\begin{enumerate}[label=\arabic*.]
+    \item Can visually detected state transitions serve as effective causal anchors for long-horizon credit assignment in RL?
+    \item Does storing only significant visual events improve learning efficiency compared to storing full trajectory history?
+    \item Can attention-based retrieval from event memory improve delayed reward attribution?
+    \item Does the proposed framework increase interpretability by revealing which visual events influenced final reward?
+\end{enumerate}
+
+\section{Proposed Methodology}
+
+\subsection{System Overview}
+
+The proposed framework consists of four main components:
+
+\begin{enumerate}[label=\alph*.]
+    \item \textbf{Visual Observation Encoder}: extracts spatial or semantic features from raw image observations.
+    \item \textbf{Event Detection Module}: identifies major visual state changes between consecutive observations.
+    \item \textbf{Causal Memory Bank}: stores selected event embeddings, timestamps, and contextual metadata.
+    \item \textbf{Attention-Based Credit Assignment Module}: retrieves past events when delayed reward occurs and estimates which event(s) contributed most strongly to the reward.
+\end{enumerate}
+
+\subsection{Visual Event Detection}
+
+The CV component will analyse consecutive visual frames and detect significant environmental changes. Candidate approaches include:
+
+\begin{itemize}
+    \item frame differencing in learned feature space,
+    \item object-level change detection,
+    \item semantic scene graph updates,
+    \item latent-state change thresholds from convolutional or transformer-based encoders.
+\end{itemize}
+
+Examples of causal visual events include:
+\begin{itemize}
+    \item a door changing from closed to open,
+    \item a key appearing or disappearing,
+    \item a bridge becoming accessible,
+    \item a light changing colour or state,
+    \item an object moving into a goal-relevant position.
+\end{itemize}
+
+Only significant state transitions will be bookmarked, reducing memory redundancy and focusing on potentially causal observations.
+
+\subsection{Causal Memory Bank}
+
+Each bookmarked event will store:
+\begin{itemize}
+    \item visual embedding,
+    \item frame or state index,
+    \item action context,
+    \item temporal position,
+    \item optional semantic label of the change.
+\end{itemize}
+
+This memory can be implemented as a fixed-capacity queue, key-value memory, or transformer-compatible episodic memory buffer.
+
+\subsection{Reward-Triggered Retrieval}
+
+When the agent receives a delayed reward, it will query the memory bank using an attention mechanism. The retrieval module will score previously bookmarked events according to their relevance to the reward-producing trajectory. This enables the agent to identify likely root causes instead of propagating reward uniformly through all past transitions.
+
+Possible retrieval methods include:
+\begin{itemize}
+    \item dot-product attention,
+    \item transformer memory retrieval,
+    \item contrastive relevance scoring,
+    \item reward-conditioned event querying.
+\end{itemize}
+
+\subsection{RL Integration}
+
+The framework may be integrated with a baseline RL algorithm such as:
+\begin{itemize}
+    \item Proximal Policy Optimization (PPO),
+    \item Deep Q-Network (DQN),
+    \item Advantage Actor-Critic (A2C),
+    \item memory-augmented RL architecture.
+\end{itemize}
+
+The baseline agent will be compared against the proposed visual causal memory agent under the same delayed reward environments.
+
+\section{Experimental Plan}
+
+The work will first be validated in simulation environments that contain visually observable intermediate events and delayed rewards. Suitable test environments may include:
+
+\begin{itemize}
+    \item grid-world or MiniGrid environments with doors, keys, switches, and hidden dependencies,
+    \item custom 2D/3D navigation tasks,
+    \item robotics-inspired simulated environments where actions change future accessibility.
+\end{itemize}
+
+The experiments will compare:
+\begin{itemize}
+    \item baseline RL without event memory,
+    \item RL with generic recurrent memory,
+    \item RL with the proposed visual causal bookmarking memory.
+\end{itemize}
+
+\section{Evaluation Metrics}
+
+The proposed framework will be evaluated using the following metrics:
+
+\begin{itemize}
+    \item cumulative reward,
+    \item sample efficiency,
+    \item convergence speed,
+    \item success rate on delayed reward tasks,
+    \item memory efficiency,
+    \item causal retrieval accuracy,
+    \item interpretability of retrieved visual events.
+\end{itemize}
+
+A qualitative analysis will also be carried out to inspect whether the retrieved bookmarked frames correspond to true causal events in the environment.
+
+\section{Expected Contribution}
+
+This dissertation is expected to make the following contributions:
+
+\begin{enumerate}[label=\arabic*.]
+    \item A novel vision-guided event bookmarking mechanism for RL.
+    \item A causal memory framework for delayed reward attribution.
+    \item An interpretable credit assignment strategy based on visual state transitions.
+    \item An experimental evaluation showing whether selective visual memory improves long-horizon learning.
+\end{enumerate}
+
+\section{Novelty of the Work}
+
+The originality of this work lies in the use of \textbf{computer vision as a causal event selector} rather than only as a perception frontend. Instead of treating all observations equally, the system identifies visually meaningful changes that are more likely to be causally relevant. These events are then used as anchors for reward attribution. This differs from standard RL memory systems, which usually store continuous trajectories without explicitly modelling causality through visual landmarks.
+
+\section{Tools and Technologies}
+
+The implementation is expected to use the following tools:
+
+\begin{itemize}
+    \item Python
+    \item PyTorch
+    \item OpenCV
+    \item Stable-Baselines3 or equivalent RL framework
+    \item Gymnasium / MiniGrid / custom simulation environments
+    \item NumPy and Matplotlib for analysis
+\end{itemize}
+
+\section{Risks and Limitations}
+
+Some challenges may arise during the project:
+
+\begin{itemize}
+    \item event detection may produce noisy or irrelevant bookmarks,
+    \item long-term memory retrieval may become computationally expensive,
+    \item causal relevance may be difficult to verify in highly stochastic environments,
+    \item limited time may require simplified environments for proof-of-concept validation.
+\end{itemize}
+
+To mitigate these risks, the work will begin with controlled environments containing clear visual causal events before extending to more complex scenarios.
+
+\section{Proposed Timeline}
+
+\begin{center}
+\begin{tabular}{@{}p{4cm}p{9cm}@{}}
+\toprule
+\textbf{Phase} & \textbf{Planned Activity} \\
+\midrule
+Weeks 1--2 & Literature review on RL credit assignment, visual memory, causal reasoning \\
+Weeks 3--4 & Environment selection and baseline RL implementation \\
+Weeks 5--6 & Design of visual event detection module \\
+Weeks 7--8 & Development of causal memory bank \\
+Weeks 9--10 & Integration of attention-based retrieval with RL agent \\
+Weeks 11--12 & Experimental evaluation and ablation studies \\
+Weeks 13--14 & Analysis of results and visualisation of causal retrieval \\
+Weeks 15--16 & Dissertation writing, revision, and final submission \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Conclusion}
+
+This dissertation proposes a novel framework for addressing the long-horizon credit assignment problem in reinforcement learning through vision-guided causal memory. By detecting important visual state changes, storing them as causal bookmarks, and retrieving them when delayed reward occurs, the proposed system aims to improve both learning performance and interpretability. If successful, this work could provide a new direction for combining computer vision, memory, and causal reasoning in embodied intelligent agents.
+
+\section{Preliminary References}
+
+\begin{enumerate}
+    \item Sutton, R. S., and Barto, A. G., \textit{Reinforcement Learning: An Introduction}.
+    \item Mnih, V. et al., ``Human-level control through deep reinforcement learning.''
+    \item Vaswani, A. et al., ``Attention is all you '' 
+\end{enumerate}
+
+\end{document}
