@@ -1,4 +1,0 @@
-[submodule "Code/ml-loop"]
-	path = Code/ml-loop
-	url = https://github.com/prathapselvakumar/ml-loop.git
-	ignore = untracked
