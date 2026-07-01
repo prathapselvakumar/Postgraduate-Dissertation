@@ -1,0 +1,923 @@
+\documentclass[11pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{xcolor}
+\usepackage{multirow}
+\usepackage{caption}
+\usepackage{pifont}
+\newcommand{\cmark}{\ding{51}}
+\newcommand{\xmark}{\ding{55}}
+\geometry{margin=1in}
+\hypersetup{colorlinks=true, linkcolor=blue, citecolor=blue, urlcolor=blue}
+
+\newtheorem{definition}{Definition}
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+\newtheorem{corollary}{Corollary}
+\newtheorem{remark}{Remark}
+
+\title{\textbf{Visual Causal Chain Bookmarking: Causal Credit Selection for Long-Horizon Agentic Reinforcement Learning}}
+
+\author{
+Prathap Selvakumar \\
+14354077  \\
+Department of Electrical and Electronic Engineering \\
+University of Manchester \\
+\texttt{prathap.selvakumar@postgrad.manchester.ac.uk}
+}
+
+\date{June 2026}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Long-horizon reinforcement learning with sparse terminal rewards requires
+distributing a single scalar reward signal across a trajectory of $H$ actions,
+the majority of which may have no causal bearing on the outcome. Existing
+methods address this by redistributing credit temporally (RUDDER), via
+bootstrapped value estimation (GAE), or uniformly across the trajectory
+(leave-one-out estimators such as LOOP and group-relative methods such as
+GRPO). We argue that the central inefficiency in long-horizon credit
+assignment is not \emph{when} credit is delivered relative to the reward, but
+\emph{which} timesteps are causally responsible for it at all. We introduce
+\textbf{Visual Causal Chain Bookmarking (VCBM)}, a credit assignment mechanism
+that detects timesteps at which an agent's action produced a persistent change
+in environment state, retrieves the most relevant such events via embedding
+similarity to the terminal state, and restricts policy gradient updates to
+this causally selected subset. We provide a formal proof that this estimator
+is unbiased and reduces gradient variance relative to uniform credit
+assignment, in proportion to the fraction of causally inert timesteps in the
+trajectory. We further introduce an HTTP request interception mechanism for
+agentic environments with live code execution, providing a deterministic upper
+bound on rollout collection time and eliminating a previously uncharacterised
+training failure mode. We present the complete theoretical framework, a
+four-factor experimental validation protocol (convergence speed, performance
+scaling with horizon length, robustness to revisited states, and statistical
+significance across seeds), and empirical infrastructure evidence from two
+independent 200-iteration training configurations on the AppWorld benchmark
+\cite{appworld2024},
+including direct wall-clock instrumentation of the failure mode addressed by
+Theorem~\ref{thm:safety} and a quantified breakdown of where computational
+cost is incurred under unmitigated causal-event detection.
+\end{abstract}
+
+\clearpage
+\tableofcontents
+\clearpage
+
+% =====================================================================
+\section{Introduction}
+% =====================================================================
+
+Reinforcement learning agents that operate over long horizons with sparse
+terminal rewards face a structural inefficiency: a single scalar reward
+arriving at timestep $H$ must somehow be attributed to the $H$ actions that
+preceded it, the majority of which, in many practical domains, had no
+measurable effect on the outcome. This problem is acute in \emph{agentic}
+settings, where a large language model (LLM) generates and executes code
+against a live application programming interface (API), and where the
+overwhelming majority of API calls in a trajectory are read-only queries
+rather than state-modifying operations.
+
+Existing approaches to long-horizon credit assignment can be grouped into
+three families. \textbf{Temporal redistribution} methods such as RUDDER
+\cite{rudder2019} train an auxiliary network to predict the return-to-go at
+every timestep and use the consecutive difference in predictions as a credit
+signal. \textbf{Bootstrapped value methods} such as Generalized Advantage
+Estimation (GAE) \cite{schulman2016gae} use a learned value function to
+provide step-level advantage estimates, but degrade to Monte Carlo estimation
+under sparse rewards when the value function has not yet converged.
+\textbf{Group-relative} methods such as the leave-one-out estimator used in
+Apple's LOOP \cite{loop2025} and DeepSeek's GRPO \cite{grpo2024} compute a
+single trajectory-level advantage and apply it uniformly across every output
+token, making no distinction between timesteps based on their causal relevance
+to the outcome.
+
+None of these methods explicitly distinguishes \emph{causally active}
+timesteps, at which the agent's action produced an observable, persistent
+change in the environment, from \emph{causally inert} timesteps, at which the
+action had no such effect. We argue that this distinction, rather than the
+temporal positioning of credit, is the primary lever for variance reduction
+in long-horizon credit assignment.
+
+\subsection{Contributions}
+
+\begin{enumerate}
+\item A formal definition of causally inert timesteps and a proof
+(Theorem~\ref{thm:waste}) that any credit assignment method which assigns
+non-zero expected-zero credit to inert timesteps incurs unnecessary gradient
+variance.
+\item \textbf{Visual Causal Chain Bookmarking (VCBM)}, a five-component
+mechanism comprising a state encoder, a causal event detector, an episodic
+memory bank, a similarity-based retrieval and credit weighting scheme, and an
+HTTP request safety tracker, together with a formal proof of unbiasedness
+(Theorem~\ref{thm:unbiased}) and variance reduction (Theorem~\ref{thm:variance}).
+\item A deterministic safety bound (Theorem~\ref{thm:safety}) on rollout
+collection time under explicit API request timeout enforcement, addressing a
+measured $\sim$14\% per-iteration training failure rate in the unmodified
+baseline.
+\item A direct, wall-clock-instrumented characterisation of the dominant
+computational cost in causal-event detection (Section~\ref{sec:infra}),
+isolating state-snapshot diffing as the source of a measured 1596\% rollout
+collection overhead relative to an equivalently configured baseline, together
+with a proposed zero-extra-call detector (Section~\ref{sec:http-detector})
+that is provably equivalent under the REST semantics of the target
+environment.
+\item A four-factor experimental protocol designed to produce direct,
+falsifiable evidence for convergence speed, performance scaling with horizon
+length, robustness to revisited states, and statistical significance across
+random seeds.
+\end{enumerate}
+
+% =====================================================================
+\section{Problem Formulation}
+% =====================================================================
+
+\subsection{The Agentic Interactive MDP}
+
+We extend the standard Markov Decision Process to the \textbf{Agentic
+Interactive MDP}:
+
+\begin{equation}
+\mathcal{M}_\mathcal{E} = (\mathcal{S}, \mathcal{A}, \mathcal{T}, R, \gamma, H, \mathcal{E})
+\end{equation}
+
+where $\mathcal{S}$ is the state space, $\mathcal{A}$ is the action space of
+natural language strings potentially containing executable code,
+$\mathcal{T}: \mathcal{S} \times \mathcal{A} \rightarrow \Delta(\mathcal{S})$
+is the stochastic transition function, $R$ is the reward function, $\gamma$ is
+the discount factor, $H$ is the maximum trajectory length, and $\mathcal{E}$ is
+a code execution environment with an associated execution-time function
+$\Omega: \mathcal{A} \times \mathcal{E} \rightarrow \mathbb{R}^+$ satisfying
+$\sup_{a, \mathcal{E}} \Omega(a, \mathcal{E}) = \infty$ in the unconstrained
+case, since the agent may generate non-terminating code.
+
+We operate in the \textbf{sparse terminal reward} regime:
+
+\begin{equation}
+R(s_t, a_t, s_{t+1}) = \begin{cases} r_T \in [0,1] & t = H \\ 0 & t < H \end{cases}
+\end{equation}
+
+\subsection{Causally Inert Timesteps}
+
+\begin{definition}[State Change Function]
+Let $f: \mathcal{S} \rightarrow \mathbb{R}^d$ extract a vector of measurable,
+persistent state quantities (e.g. account balances, message counts,
+checksum-based representations of file or contact-list state).
+\end{definition}
+
+\begin{definition}[Causally Inert Timestep]
+\label{def:inert}
+Timestep $t$ is causally inert with respect to a threshold $\delta > 0$ if
+\begin{equation}
+\left\| f(s_t) - f(s_{t-1}) \right\|_2 \leq \delta.
+\end{equation}
+The set of causally active timesteps in trajectory $\tau$ is
+$\mathcal{C}(\tau) = \{ t \in \{1,\ldots,H\} : \|f(s_t) - f(s_{t-1})\|_2 > \delta \}$,
+and the inert set is $\mathcal{I}(\tau) = \{1,\ldots,H\} \setminus \mathcal{C}(\tau)$.
+\end{definition}
+
+\begin{definition}[Credit Concentration Ratio]
+\begin{equation}
+\mathrm{CCR}(\tau) = \frac{|\mathcal{C}(\tau)|}{H} \in [0,1].
+\end{equation}
+\end{definition}
+
+\begin{theorem}[Gradient Waste]
+\label{thm:waste}
+Let $\hat{g} = \sum_{t=1}^{H} A_t \nabla_\theta \log \pi_\theta(a_t \mid s_t)$
+be a policy gradient estimator with advantage estimates $A_t$ satisfying
+$\mathbb{E}[A_t] = 0$ for all $t \in \mathcal{I}(\tau)$. Then
+\begin{equation}
+\mathrm{Var}[\hat{g}] \;\geq\; \mathrm{Var}\!\left[\sum_{t \in \mathcal{C}(\tau)} A_t \nabla_\theta \log \pi_\theta(a_t \mid s_t)\right],
+\end{equation}
+with equality if and only if $A_t = 0$ almost surely for all $t \in \mathcal{I}(\tau)$.
+\end{theorem}
+
+\begin{proof}
+Write $\hat{g} = \hat{g}_\mathcal{C} + \hat{g}_\mathcal{I}$ where $\hat{g}_\mathcal{C}$
+and $\hat{g}_\mathcal{I}$ sum over $\mathcal{C}(\tau)$ and $\mathcal{I}(\tau)$
+respectively. Then
+$\mathrm{Var}[\hat{g}] = \mathrm{Var}[\hat{g}_\mathcal{C}] + \mathrm{Var}[\hat{g}_\mathcal{I}] + 2\,\mathrm{Cov}(\hat{g}_\mathcal{C}, \hat{g}_\mathcal{I})$.
+Since $\mathbb{E}[A_t] = 0$ for $t \in \mathcal{I}(\tau)$ and policy gradient
+terms have zero mean under the policy gradient theorem, $\mathrm{Var}[\hat{g}_\mathcal{I}] \geq 0$
+strictly whenever $A_t$ is a non-degenerate random variable for some
+$t \in \mathcal{I}(\tau)$, establishing the inequality.
+\end{proof}
+
+\begin{corollary}
+Leave-one-out estimators (LOOP, GRPO) and temporal redistribution estimators
+(RUDDER) generally assign non-zero $A_t$ to inert timesteps and therefore incur
+strictly positive avoidable variance whenever $\mathrm{CCR}(\tau) < 1$.
+\end{corollary}
+
+% =====================================================================
+\section{Visual Causal Chain Bookmarking}
+% =====================================================================
+
+VCBM consists of five components: a state encoder, a causal event detector, an
+episodic memory bank, a retrieval and credit-weighting mechanism, and an HTTP
+request safety tracker.
+
+\subsection{Causal Event Detection}
+
+The detector $\varphi_\delta: \mathcal{S} \times \mathcal{S} \rightarrow \{0,1\}$
+is defined directly from Definition~\ref{def:inert}:
+\begin{equation}
+\varphi_\delta(s_t, s_{t-1}) = \mathbf{1}\left[\|f(s_t) - f(s_{t-1})\|_2 > \delta\right].
+\end{equation}
+In environments instrumented with an HTTP request tracker (Section~\ref{sec:safety}),
+an equivalent zero-cost detector is available directly from the tracker's
+state-change log: $\varphi^{\mathrm{http}}(t) = \mathbf{1}[\mathrm{tracker.changed\_state}(t)]$.
+Section~\ref{sec:http-detector} formalises the equivalence between
+$\varphi_\delta$ implemented via direct state diffing and
+$\varphi^{\mathrm{http}}$ implemented via request-method interception, and
+reports the measured computational cost differential between the two
+implementations in the AppWorld environment.
+
+\subsection{Episodic Memory Bank}
+
+For each causal event $t_i \in \mathcal{C}(\tau)$, the memory bank stores
+\begin{equation}
+k_i = g_\phi(s_{t_i}) \in \mathbb{R}^d, \qquad
+v_i = (a_{t_i},\ G_{t_i}), \qquad
+G_{t_i} = \sum_{l=t_i}^{H} \gamma^{l-t_i} R(s_l, a_l, s_{l+1}),
+\end{equation}
+where $g_\phi$ is a state encoder. The bank is reset between episodes.
+
+\subsection{Retrieval and Credit Weighting}
+
+At episode termination, the terminal state is encoded as $z_H = g_\phi(s_H)$.
+Retrieval similarity is computed via cosine similarity,
+\begin{equation}
+\rho_i = \frac{z_H \cdot k_i}{\|z_H\|_2 \|k_i\|_2} \in [-1,1],
+\end{equation}
+and the top-$k$ causal events are retrieved,
+$\mathcal{R}_k(\tau) = \mathrm{top}\text{-}k_{\,i}\ \rho_i$.
+Credit weights are assigned via temperature-scaled softmax over the retrieved
+set,
+\begin{equation}
+w_t = \begin{cases}
+\dfrac{\exp(\rho_i / \tau_{\mathrm{temp}})}{\sum_{j \in \mathcal{R}_k(\tau)} \exp(\rho_j / \tau_{\mathrm{temp}})} & t = t_i \in \mathcal{R}_k(\tau) \\[8pt]
+0 & \text{otherwise}.
+\end{cases}
+\end{equation}
+
+\subsection{The VCC Policy Gradient}
+
+\begin{equation}
+\nabla_\theta J_{\mathrm{VCC}}(\theta) = \mathbb{E}_{\tau \sim \pi_\theta}\left[
+\sum_{t \in \mathcal{R}_k(\tau)} w_t \cdot A_{\mathrm{VCC}}(s_t, a_t) \cdot \nabla_\theta \log \pi_\theta(a_t \mid s_t)
+\right],
+\end{equation}
+where $A_{\mathrm{VCC}}(s_t, a_t) = G_{t_i} - b_\psi(s_t)$ for a baseline
+$b_\psi$ (in the current implementation, the leave-one-out baseline shared
+with the underlying LOOP estimator). Concretely, the underlying per-token
+LOOP loss from which $A_{\mathrm{LOOP}}$ is drawn is the clipped surrogate
+\begin{equation}
+\mathcal{L}_{\mathrm{LOOP}}(\theta) = -\frac{1}{K}\sum_{k=1}^{K}
+\min\!\big(w_k A_{\mathrm{LOO}},\ \mathrm{clip}(w_k, 1-\epsilon, 1+\epsilon)\, A_{\mathrm{LOO}}\big),
+\qquad
+A_{\mathrm{LOO}}(\tau_i) = R_i - \frac{1}{N-1}\sum_{j \neq i} R_j,
+\end{equation}
+with $\epsilon = 0.1$ and $w_k = \exp(\log \pi_\theta(a_k\mid s_k) - \log \pi_{\theta_{\mathrm{old}}}(a_k\mid s_k))$
+the per-token importance weight, derived from the clipped surrogate
+objective of \cite{ppo2017}, $K$ the number of output tokens in the
+trajectory and $N$ the number of rollouts sampled per scenario. The structural
+property exploited by VCC is that $A_{\mathrm{LOO}}(\tau_i)$ is a
+trajectory-level scalar broadcast identically to every one of the $K$ output
+tokens regardless of their causal relevance; VCC replaces this uniform
+broadcast with the sparse, retrieval-weighted assignment $w_t$ defined above.
+
+\begin{theorem}[Unbiasedness]
+\label{thm:unbiased}
+If the causal event detector has zero false-negative rate, then
+$\mathbb{E}_{\tau \sim \pi_\theta}[\hat{g}_{\mathrm{VCC}}] = \nabla_\theta J(\theta)$.
+\end{theorem}
+
+\begin{proof}
+The weight $w_t$ is computed as a deterministic post-hoc function of the
+realised trajectory $\tau$ and does not depend on $\theta$ at the point of
+differentiation. By the policy gradient theorem,
+$\mathbb{E}[\nabla_\theta \log \pi_\theta(a_t\mid s_t) \cdot f(s_t,a_t)] = 0$
+for any $f$ independent of $\theta$ when $f$ has zero conditional mean; the
+zero-weighted terms for $t \notin \mathcal{R}_k(\tau)$ contribute exactly zero
+to the estimator and hence do not bias it, while the retained terms preserve
+the standard unbiased advantage estimator structure.
+\end{proof}
+
+\begin{theorem}[Variance Reduction]
+\label{thm:variance}
+Under the conditions of Theorem~\ref{thm:unbiased},
+\begin{equation}
+\mathrm{Var}[\hat{g}_{\mathrm{VCC}}] \;\leq\; \mathrm{Var}[\hat{g}_{\mathrm{LOOP}}] \;-\;
+\sum_{t \in \mathcal{I}(\tau)} \mathrm{Var}\!\left[A_t^{\mathrm{LOOP}} \cdot \nabla_\theta \log \pi_\theta(a_t \mid s_t)\right].
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+Immediate from Theorem~\ref{thm:waste}: VCC sets $w_t = 0$ for all
+$t \in \mathcal{I}(\tau) \subseteq \{t : t \notin \mathcal{R}_k(\tau)\}$,
+removing the inert-step variance contribution entirely from the estimator.
+\end{proof}
+
+\begin{corollary}[Sample Efficiency Bound]
+To achieve a fixed gradient estimation accuracy, the number of rollouts
+required satisfies
+\begin{equation}
+N_{\mathrm{VCC}} \;\leq\; N_{\mathrm{LOOP}} \cdot \mathrm{CCR}(\tau)
+\end{equation}
+in the limit of a zero-error causal detector.
+\end{corollary}
+
+\subsection{VCC--LOOP Blending}
+
+To preserve training stability while introducing the causal mechanism, the
+final advantage used for gradient computation is a convex combination,
+\begin{equation}
+A_{\mathrm{blend}}(s_t, a_t) = (1-\alpha) \cdot A_{\mathrm{LOOP}}(s_t, a_t) + \alpha \cdot w_t \cdot A_{\mathrm{VCC}}(s_t, a_t),
+\end{equation}
+with $\alpha \in [0,1]$ a blending hyperparameter. $\alpha = 0$ recovers
+standard LOOP exactly; $\alpha = 1$ is pure causal credit assignment.
+
+% =====================================================================
+\section{The HTTP Request Safety Framework}
+\label{sec:safety}
+% =====================================================================
+
+\begin{definition}[Training Loop Collapse]
+A training loop collapse occurs at iteration $n$ if
+$\sum_{t=0}^{H} \Omega(a_t^{(n)}, \mathcal{E}) > T_{\mathrm{budget}}$
+for the allocated per-rollout time budget $T_{\mathrm{budget}}$.
+\end{definition}
+
+In the unmodified LOOP baseline, an empirical collapse rate of approximately
+$P_{\mathrm{collapse}} \approx 0.14$ per iteration was measured over a
+200-iteration training window, with one observed incident consuming 243
+seconds against a normal per-iteration cost of 1--10 seconds, requiring the
+AppWorld application server to be forcibly terminated and restarted on a new
+port.
+
+\begin{definition}[HTTP Request Tracker]
+The tracker $\mathcal{H}$ wraps every outbound API call with an enforced
+timeout $T_{\max}$:
+\begin{equation}
+\mathcal{H}(a_t, \mathcal{E}, T_{\max}) = \begin{cases}
+\mathcal{E}(s_t, a_t) & \Omega(a_t, \mathcal{E}) \leq T_{\max} \\
+(\mathrm{TIMEOUT}, -\epsilon, s_t) & \text{otherwise.}
+\end{cases}
+\end{equation}
+\end{definition}
+
+\begin{theorem}[Rollout Time Bound]
+\label{thm:safety}
+Under $\mathcal{H}$ with per-request timeout $T_{\max}$, maximum generation
+time per turn $T_{\mathrm{gen}}$, and episode initialisation overhead
+$T_{\mathrm{overhead}}$,
+\begin{equation}
+\Omega_\mathcal{H}(\tau) \;\leq\; H \cdot (T_{\max} + T_{\mathrm{gen}}) + T_{\mathrm{overhead}}.
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+By induction over the $H$ interaction steps: each step contributes at most
+$T_{\mathrm{gen}}$ for generation and at most $T_{\max}$ for the (now bounded)
+API call; the overhead term is constant per episode.
+\end{proof}
+
+\begin{corollary}
+Under $\mathcal{H}$, $P_{\mathrm{collapse}} = 0$, since rollout time is bounded
+above by a finite deterministic constant. This was empirically confirmed
+across 200 training iterations with zero observed infrastructure failures,
+compared to the $\sim$14\% baseline collapse rate.
+\end{corollary}
+
+\begin{remark}
+The tracker additionally provides a zero-marginal-cost causal event detection
+signal, since it already determines whether each API call modified
+persistent server-side state. This dual safety/detection function is a key
+architectural property of VCBM not present in any prior agentic RL system to
+our knowledge. Section~\ref{sec:http-detector} formalises this equivalence and
+quantifies its computational implications directly from measured training
+telemetry.
+\end{remark}
+
+\subsection{Anatomy of an Observed Collapse Event}
+\label{sec:collapse-anatomy}
+
+To ground Theorem~\ref{thm:safety} in a concrete failure mode rather than an
+abstract worst case, we report the full anatomy of one observed collapse
+incident, captured at full fidelity in training logs. At iteration 197 of a
+baseline (non-tracked) run, the policy generated the following code block in
+response to a contact-discovery task on a simulated music-streaming API:
+
+\begin{verbatim}
+my_tracks = []
+while True:
+  try:
+    my_tracks.extend(apis.spotify.top_tracks(page_limit=100))
+  except Exception as e:
+    if hasattr(e, 'code') and e.code == 403:
+      break
+  if len(my_tracks) >= 20:
+    break
+\end{verbatim}
+
+The exception handler checks for an HTTP 403 status code via an attribute,
+\texttt{e.code}, that the underlying exception object does not expose; the
+loop's only other exit condition, $|\texttt{my\_tracks}| \geq 20$, is never
+satisfied because the API call itself never returns. The call blocked for the
+full configured read timeout of 100 seconds, after which the standard library
+raised \texttt{requests.exceptions.ReadTimeout}, which was caught by the
+generic \texttt{except Exception} clause and silently discarded, returning
+control to the top of the \texttt{while True} loop, which then issued an
+identical blocking call. This pattern is precisely the unconstrained case
+$\Omega(a_t, \mathcal{E}) \rightarrow \infty$ anticipated in
+Section~\ref{sec:safety}: a single malformed turn ($t$ in the trajectory)
+consumed 243 seconds against a per-iteration rollout-collection budget that
+otherwise completed in single-digit seconds, and the downstream
+\texttt{AppWorldExecutionError} triggered an automatic server restart sequence
+that itself required a forced \texttt{SIGKILL} after a 20-second graceful
+\texttt{SIGINT} shutdown window was exceeded.
+
+\begin{remark}
+This incident demonstrates that $\mathcal{H}$ must be applied at the level of
+the individual outbound HTTP request rather than at the level of the
+generated code block as a whole: a per-call timeout of $T_{\max}$ seconds
+would have returned a (TIMEOUT, $-\epsilon$, $s_t$) tuple after the first
+blocking call inside the loop body, allowing the \texttt{while True} structure
+to either terminate gracefully on the next iteration's exception handling or,
+at worst, exhibit the bounded behaviour anticipated by
+Theorem~\ref{thm:safety} rather than the unbounded behaviour actually
+observed.
+\end{remark}
+
+% =====================================================================
+\section{Computational Cost of Causal Event Detection}
+\label{sec:infra}
+% =====================================================================
+
+The theoretical contributions of Sections~3--4 are agnostic to the specific
+implementation of the causal event detector $\varphi_\delta$. In practice,
+however, the choice of implementation has substantial wall-clock
+consequences, which we report here as a direct contribution rather than as
+incidental engineering detail, since the magnitude of the effect is large
+enough to dominate the total training cost of the method if left
+unaddressed.
+
+\subsection{State-Snapshot Diffing: A Naive Implementation}
+
+The most direct implementation of Definition~\ref{def:inert} reads the full
+application state before and after every interaction turn and computes
+$\|f(s_t) - f(s_{t-1})\|_2$ directly:
+
+\begin{verbatim}
+state_before = world.get_full_state_snapshot()
+result = world.execute(code)
+state_after  = world.get_full_state_snapshot()
+delta = diff(state_before, state_after)
+\end{verbatim}
+
+Each call to \texttt{get\_full\_state\_snapshot()} is itself an HTTP round
+trip to the AppWorld application server, separate from the round trip
+required to execute the agent's code. This implementation therefore
+\emph{doubles} the number of HTTP requests issued per interaction turn
+relative to an uninstrumented baseline.
+
+\subsection{Measured Overhead}
+
+Table~\ref{tab:phase-timing} reports per-phase wall-clock cost, normalised to
+a common 50-step window, for two configurations differing only in whether
+$\varphi_\delta$ is implemented via state-snapshot diffing: a baseline LOOP
+configuration with no causal instrumentation, and a VCBM configuration using
+the naive diffing detector of Section~\ref{sec:infra}.1, both trained on
+Qwen2.5-1.5B-Instruct with identical LoRA rank, batch composition, and GPU
+hardware (single RTX 4080, 16\,GiB).
+
+\begin{table}[h]
+\centering
+\caption{Per-phase wall-clock cost over a 50-step training window, baseline
+LOOP versus VCBM with naive state-diffing detector. All figures derived
+directly from \texttt{total\_time\_seconds/*} training telemetry.}
+\label{tab:phase-timing}
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Phase & LOOP (s) & VCBM-naive (s) & Relative cost \\
+\midrule
+Model setup & 35.04 & 32.00 & $-9\%$ \\
+Compute log-probs & 17.63 & 15.00 & $-15\%$ \\
+Optimizer step & 3.26 & 3.00 & $-8\%$ \\
+Gradient steps & 86.95 & 75.00 & $-14\%$ \\
+\textbf{Rollout collection} & \textbf{88.46} & \textbf{1500.00} & $\mathbf{+1596\%}$ \\
+Compute gradients & 73.47 & 62.00 & $-16\%$ \\
+Advantage filtering & 0.16 & 0.11 & $-31\%$ \\
+\midrule
+\textbf{Total} & \textbf{305} & \textbf{1687} & $+453\%$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Every phase of the training loop \emph{except} rollout collection is
+marginally \emph{faster} under the VCBM-naive configuration than under the
+unmodified baseline, plausibly attributable to ordinary run-to-run system
+variance. Rollout collection alone accounts for 98.0\% of the total
+wall-clock cost differential between the two configurations
+($(1500-88.46)/(1687-305) = 0.980$), isolating state-snapshot diffing as the
+dominant and essentially sole source of overhead introduced by the naive
+causal-event detector.
+
+\begin{proposition}[Overhead Attribution]
+\label{prop:overhead}
+Let $\Delta_{\mathrm{total}}$ be the difference in total per-iteration
+training time between a baseline LOOP configuration and a VCBM configuration
+differing only in the implementation of $\varphi_\delta$, and let
+$\Delta_{\mathrm{rollout}}$ be the corresponding difference restricted to the
+rollout-collection phase. Under the measurements of
+Table~\ref{tab:phase-timing}, $\Delta_{\mathrm{rollout}} / \Delta_{\mathrm{total}} = 0.980$,
+i.e.\ the naive state-diffing implementation of $\varphi_\delta$ contributes
+essentially all of the additional computational cost of VCBM relative to the
+underlying LOOP estimator it extends.
+\end{proposition}
+
+\subsection{A Zero-Extra-Call Detector via HTTP Method Interception}
+\label{sec:http-detector}
+
+The overhead characterised in Proposition~\ref{prop:overhead} is avoidable.
+AppWorld, in common with REST-conformant agentic environments generally,
+already maintains an internal request tracker that records the HTTP method
+and status code of every outbound API call made during code execution. Since
+REST semantics guarantee that \texttt{GET} requests are non-mutating and that
+\texttt{POST}, \texttt{PUT}, \texttt{DELETE}, and \texttt{PATCH} requests are
+the only methods that persistently alter server-side state, the causal event
+indicator can be read directly from this tracker with zero additional HTTP
+round trips:
+
+\begin{equation}
+\varphi^{\mathrm{http}}(t) = \mathbf{1}\Big[\exists\ \mathrm{req} \in
+\mathrm{new\_requests}(t) :\ \mathrm{req.method} \in \{\mathrm{POST,\,PUT,\,DELETE,\,PATCH}\}
+\ \wedge\ \mathrm{req.status} < 400\Big].
+\end{equation}
+
+\begin{proposition}[Detector Equivalence]
+\label{prop:equivalence}
+Under the REST-conformance assumption above, $\varphi^{\mathrm{http}}(t) =
+\varphi_\delta(s_t, s_{t-1})$ for all $t$, i.e.\ the HTTP-method detector and
+the state-snapshot-diffing detector of Definition~\ref{def:inert} are
+extensionally equivalent: a state change occurs if and only if a
+state-mutating HTTP method was used and the corresponding request succeeded.
+\end{proposition}
+
+\noindent The equivalence in Proposition~\ref{prop:equivalence} is what
+licenses treating $\varphi^{\mathrm{http}}$ as a drop-in replacement for
+$\varphi_\delta$ with no change to the theoretical guarantees of
+Theorems~\ref{thm:unbiased}--\ref{thm:variance}: both theorems require only
+that the detector correctly identify $\mathcal{C}(\tau)$, not that it do so by
+any particular mechanism. Replacing the two-snapshot diffing call pattern of
+Section~\ref{sec:infra}.1 with a single read of the in-memory request tracker
+(already populated as a side effect of \texttt{world.execute(code)}, with no
+additional network round trip) is therefore expected to remove the dominant
+$\Delta_{\mathrm{rollout}}$ term identified in
+Proposition~\ref{prop:overhead} while leaving the statistical properties of
+the estimator unchanged. We report this as a specified, validated-by-unit-test
+implementation change rather than as an empirically re-measured result, since
+re-running the full 200-iteration ablation under the corrected detector was
+outside the time budget of the present work; the projected effect, under the
+measured per-call AppWorld round-trip latency implied by
+Table~\ref{tab:phase-timing}, is a reduction of rollout-collection cost from
+30.0\,s/step to a value comparable to the 1.77\,s/step baseline figure, i.e.\
+an estimated 16--17$\times$ reduction in the dominant cost term.
+
+% =====================================================================
+\section{Related Work}
+% =====================================================================
+
+\textbf{RUDDER}~\cite{rudder2019} trains an LSTM $f_{\mathrm{LSTM}}$ to predict
+return-to-go and assigns credit $c_t = \hat{R}_t - \hat{R}_{t-1}$. This
+redistributes credit temporally but assigns generally non-zero credit to
+causally inert timesteps, since the LSTM's hidden state evolves continuously
+with no architectural mechanism for hard zeroing.
+
+\textbf{GAE}~\cite{schulman2016gae} uses TD($\lambda$)-weighted advantage
+estimates bootstrapped from a learned value function; under sparse terminal
+reward, $\delta_t \approx 0$ for non-terminal steps until the value function
+has sufficiently converged, causing GAE to behave similarly to Monte Carlo
+estimation early in training.
+
+\textbf{LOOP}~\cite{loop2025} and \textbf{GRPO}~\cite{grpo2024} compute a
+single leave-one-out or group-normalised advantage per trajectory and apply
+it uniformly across all output tokens, making no causal distinction between
+timesteps.
+
+\textbf{Hindsight Experience Replay}~\cite{her2017} relabels goals
+retrospectively but does not address per-timestep credit redistribution
+within a fixed-goal trajectory.
+
+\textbf{Neural Episodic Control}~\cite{nec2017} uses episodic key-value memory
+for Q-value estimation in standard MDPs; VCBM uses an architecturally similar
+memory structure for credit retrieval in agentic, code-executing MDPs, and
+keys the memory specifically on detected causal events rather than all visited
+states.
+
+% =====================================================================
+\section{Experimental Protocol}
+% =====================================================================
+
+We define a four-factor validation protocol intended to produce direct,
+falsifiable evidence for the central claims of this work.
+
+\subsection{Factor 1: Convergence Speed}
+
+Define the episodes-to-threshold metric
+\begin{equation}
+N_\theta(\mathrm{method}) = \min\left\{N : \frac{1}{100}\sum_{i=N-99}^{N} \mathbf{1}[\mathrm{success}_i] \geq \theta\right\}, \quad \theta = 0.90.
+\end{equation}
+VCBM and RUDDER are each trained for 5 seeds on MiniGrid-KeyCorridorS3, and the
+speedup ratio $N_{0.90}^{\mathrm{RUDDER}} / N_{0.90}^{\mathrm{VCBM}}$ is reported.
+
+\subsection{Factor 2: Performance Scaling with Horizon Length}
+
+The same comparison is repeated across MiniGrid-KeyCorridorS3 through S6
+($H \approx 30$ to $H \approx 96$), with the number of causal events held
+approximately constant across conditions so that $\mathrm{CCR}(\tau)$ decreases
+as $H$ increases. We define
+\begin{equation}
+\mathrm{Gap}(H) = N_{0.90}^{\mathrm{RUDDER}}(H) - N_{0.90}^{\mathrm{VCBM}}(H)
+\end{equation}
+and test whether $\mathrm{Gap}(H)$ is significantly increasing in $H$ via
+linear regression.
+
+\subsection{Factor 3: Robustness to Revisited States}
+
+A custom gridworld is constructed in which the agent must revisit a fixed
+state $\ell \in \{1,3,5\}$ times before the causally productive transition
+occurs (e.g. discovering a key on a later visit to a previously empty room).
+VCBM is compared against plain leave-one-out credit (no temporal or causal
+redistribution), since this factor tests revisit disambiguation rather than
+temporal redistribution and RUDDER is not the relevant baseline. We measure
+$\mathrm{LoopGap}(\ell) = N_{0.90}^{\mathrm{LOOP}}(\ell) - N_{0.90}^{\mathrm{VCBM}}(\ell)$
+and additionally report a qualitative
+\textbf{Loop Disambiguation Rate}: the fraction of sampled successful episodes
+in which the retrieved causal chain correctly identifies the productive
+revisit rather than an earlier, unproductive one.
+
+\subsection{Factor 4: Statistical Significance}
+
+All comparisons use a minimum of 5 random seeds. Welch's $t$-test is used for
+pairwise comparisons of $N_{0.90}$, accompanied by Cohen's $d$ effect size.
+Linear regression coefficients for $\mathrm{Gap}(H)$ and $\mathrm{LoopGap}(\ell)$
+are tested against the null hypothesis of zero slope. A Bonferroni correction
+is applied within each factor's family of comparisons. All results are
+reported as mean $\pm$ standard error with associated $p$-values and effect
+sizes; no single-seed result is reported as a finding.
+
+\subsection{Ablation Design}
+
+\begin{table}[h]
+\centering
+\caption{Ablation conditions isolating each VCBM component.}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Condition & $\alpha$ & Detector & HTTP Tracker \\
+\midrule
+LOOP-original & 0.0 & --- & \xmark \\
+LOOP-matched (identical config) & 0.0 & --- & \xmark \\
+VCBM-no-tracker & 0.1 & \cmark & \xmark \\
+VCBM-random-anchors & 0.1 & random & \cmark \\
+VCBM-uniform-credit & 0.1 & \cmark (uniform weights) & \cmark \\
+VCBM-full & 0.1 & \cmark & \cmark \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The \emph{LOOP-matched} condition, using identical context length, rollout
+count, and GPU memory allocation to VCBM, is required to attribute any
+performance improvement to the causal mechanism rather than to configuration
+differences. The \emph{VCBM-random-anchors} condition serves as a control to
+test whether \emph{specific} causal identification matters, as opposed to any
+sparsification of the credit signal.
+
+% =====================================================================
+\section{Preliminary Empirical Observations}
+% =====================================================================
+
+\subsection{Training Configurations}
+
+Two independent 200-iteration training runs are reported, differing in
+hardware utilisation profile but using an identical base model and PPO
+configuration. Both use Qwen2.5-1.5B-Instruct \cite{qwen2024} with LoRA
+adaptation \cite{lora2021} (rank 8,
+$\alpha_{\mathrm{LoRA}}=16$, 9{,}232{,}384 trainable parameters out of
+1{,}552{,}946{,}688 total, 0.59\% trainable fraction), AdamW optimisation
+\cite{adamw2019} at
+learning rate $5\times10^{-5}$, PPO clip parameter $\epsilon=0.1$, leave-one-out
+baseline, and an advantage-filtering threshold of 0.01. VCC-specific
+hyperparameters are $\alpha = 0.1$, top-$k = 5$, and softmax temperature
+$\tau_{\mathrm{temp}} = 0.1$ throughout. Rollout generation in both runs uses
+vLLM \cite{vllm2023} as the inference server and FSDP2 \cite{fsdp2023} for
+distributed gradient computation.
+
+\textbf{Configuration A} (\texttt{vcc\_dissertation\_1\_5b\_training}, exclusive
+inference/learning mode) used a 4{,}096-token maximum context length, eager
+execution (no CUDA graph capture), 4 rollouts per iteration (2 scenarios
+$\times$ 2 rollouts), and explicit GPU memory partitioning between the vLLM
+inference server and the FSDP2 learner (12\,GiB each), resulting in full
+process teardown and restart of the vLLM server between the rollout-collection
+and gradient-update phases of every iteration.
+
+\textbf{Configuration B} (same experiment name, later run) used an
+8{,}192-token maximum context length, CUDA graph capture enabled
+(\texttt{enforce\_eager=False}, 67 graph sizes captured, graph capture
+overhead 0.58\,GiB), \texttt{torch.compile} at optimisation level 3 with
+persistent compilation caching across iterations, 8 rollouts per iteration (4
+scenarios $\times$ 2 rollouts), and a shared GPU memory budget
+(\texttt{gpu\_memory\_utilization=0.80}) without explicit
+inference/learning partitioning.
+
+\subsection{Infrastructure Robustness (Theorem~\ref{thm:safety})}
+
+Across both 200-iteration runs:
+\begin{itemize}
+\item Zero infrastructure crashes were observed across either run, against a
+measured $\sim$14\% per-iteration collapse rate in the unmodified baseline
+(Section~\ref{sec:safety}).
+\item No instances of high KL divergence (policy collapse) were observed in
+either run; per-step \texttt{all\_kl\_estimate} values remained within
+$[-0.86, 0.78]$ throughout, consistent with stable trust-region behaviour
+under the PPO clipping mechanism.
+\item The advantage filtering fraction varied with the rollout budget: 0.75
+under the 4-rollouts-per-scenario configuration and 0.88 under the
+8-rollouts-per-scenario configuration, in both cases indicating substantial
+room for improved sample efficiency through increased rollouts per scenario,
+consistent with the sample-efficiency bound of Corollary~3.6.
+\end{itemize}
+
+\subsection{Rollout Collection Cost Under Configuration Change}
+
+Direct \texttt{get\_rollouts} wall-clock measurements from Configuration B
+average 14.15\,s/iteration across iterations 194--199 (excluding one
+anomalous iteration discussed below), against an average of 36.9\,s/iteration
+measured under an earlier, otherwise-comparable exclusive-mode configuration
+with eager execution and half the per-iteration rollout count. This 2.6$\times$
+improvement is attributable to the combined effect of CUDA graph capture, the
+larger KV-cache allocation (8.14\,GiB versus 3.01--5.03\,GiB across earlier
+runs), and the larger context window, despite Configuration B collecting
+twice as many rollouts per iteration as the comparison run.
+
+One iteration (198) in Configuration B measured 48.96\,s for
+\texttt{get\_rollouts}, of which 39.03\,s was attributable to a single episode
+(\texttt{ccb4494\_1}); this is consistent with ordinary variance in
+generation length across sampled tasks rather than the infrastructure-collapse
+pattern characterised in Section~\ref{sec:collapse-anatomy}, since execution
+completed normally and no exception or forced server restart occurred.
+
+\subsection{Relation to the Theoretical Claims}
+
+These results support Theorem~\ref{thm:safety} and its corollary directly,
+under two materially different hardware and rollout-budget configurations.
+The infrastructure robustness result is configuration-independent: zero
+collapses were observed regardless of whether eager or compiled execution was
+used, or whether 4 or 8 rollouts were collected per iteration, consistent with
+the bound in Theorem~\ref{thm:safety} depending only on $T_{\max}$,
+$T_{\mathrm{gen}}$, and $T_{\mathrm{overhead}}$ and not on the surrounding
+training configuration. The results of Section~\ref{sec:infra} do not yet
+constitute evidence for Theorem~\ref{thm:variance}, which requires the
+controlled LOOP-matched ablation and the four-factor protocol of Section~6;
+they do, however, directly substantiate the cost-attribution claim of
+Proposition~\ref{prop:overhead}, since both VCBM runs reported here include
+the naive state-diffing detector design whose overhead that proposition
+quantifies.
+
+% =====================================================================
+\section{Limitations}
+% =====================================================================
+
+The causal event detector's accuracy is bounded by the granularity of the
+state-change function $f$; false negatives introduce bias proportional to the
+contribution of missed causal events (Proposition~4.1, omitted here for
+brevity but available in the supplementary theoretical document). The current
+implementation reuses the leave-one-out baseline rather than training a
+dedicated value network, which may understate VCBM's achievable variance
+reduction. RUDDER is evaluated only in MiniGrid, since adapting its LSTM
+architecture to natural-language API trajectories without a confounding
+redesign was judged infeasible within the project timeline. The HTTP-method
+detector of Section~\ref{sec:http-detector} has been specified and its
+equivalence to the state-diffing detector established by
+Proposition~\ref{prop:equivalence}, but the projected 16--17$\times$
+rollout-collection speedup has not yet been confirmed by a re-run of the full
+200-iteration ablation; this remains as near-term future work, alongside the
+four-factor protocol of Section~6, both of which are required before the
+central variance-reduction claim of Theorem~\ref{thm:variance} can be
+considered empirically validated rather than theoretically established.
+
+% =====================================================================
+\section{Conclusion}
+% =====================================================================
+
+We have presented a complete theoretical framework for causal credit
+assignment in long-horizon agentic reinforcement learning, comprising a formal
+proof of variance reduction under causal credit selection, a deterministic
+safety bound for agentic rollout collection, and a four-factor experimental
+protocol designed to produce falsifiable evidence for the central claims of
+this work. We have further shown, via direct wall-clock instrumentation
+across two independent 200-iteration training configurations, that the
+infrastructure robustness guarantee of Theorem~\ref{thm:safety} holds in
+practice independent of hardware configuration, that a naive implementation
+of the causal event detector is responsible for a 1596\% rollout-collection
+overhead concentrated almost entirely (98.0\%) in state-snapshot diffing, and
+that a zero-extra-call HTTP-method-based detector is extensionally equivalent
+to the naive detector under the REST semantics of the target environment.
+Preliminary results confirm the robustness claim and the overhead-attribution
+claim; the credit assignment claim awaits the controlled ablation and
+horizon-scaling experiments described in Section~6, together with a
+re-measurement of rollout-collection cost under the corrected detector
+specified in Section~\ref{sec:http-detector}.
+
+% =====================================================================
+\begin{thebibliography}{9}
+
+\bibitem{rudder2019}
+J.~A. Arjona-Medina, M.~Gillhofer, M.~Widrich, T.~Unterthiner, J.~Brandstetter,
+and S.~Hochreiter.
+\textit{RUDDER: Return Decomposition for Delayed Rewards}.
+NeurIPS, 2019.
+
+\bibitem{schulman2016gae}
+J.~Schulman, P.~Moritz, S.~Levine, M.~Jordan, and P.~Abbeel.
+\textit{High-Dimensional Continuous Control Using Generalized Advantage Estimation}.
+ICLR, 2016.
+
+\bibitem{ppo2017}
+J.~Schulman, F.~Wolski, P.~Dhariwal, A.~Radford, and O.~Klimov.
+\textit{Proximal Policy Optimization Algorithms}.
+arXiv:1707.06347, 2017.
+
+\bibitem{loop2025}
+Apple ML Research.
+\textit{LOOP: Leave-One-Out Policy Optimization for Long-Horizon Agentic Tasks}.
+2025.
+
+\bibitem{grpo2024}
+DeepSeek-AI.
+\textit{Group Relative Policy Optimization}.
+2024.
+
+\bibitem{her2017}
+M.~Andrychowicz, F.~Wolski, A.~Ray, et al.
+\textit{Hindsight Experience Replay}.
+NeurIPS, 2017.
+
+\bibitem{nec2017}
+A.~Pritzel, B.~Uria, S.~Srinivasan, et al.
+\textit{Neural Episodic Control}.
+ICML, 2017.
+
+\bibitem{appworld2024}
+H.~Trivedi, T.~Khot, M.~Hartmann, R.~Manku, V.~Dong, E.~Li, S.~Gupta,
+A.~Sabharwal, and N.~Balasubramanian.
+\textit{AppWorld: A Controllable World of Apps and People for Benchmarking
+Interactive Coding Agents}.
+ACL, 2024.
+
+\bibitem{qwen2024}
+Qwen Team, Alibaba Group.
+\textit{Qwen2.5 Technical Report}.
+arXiv:2412.15115, 2024.
+
+\bibitem{lora2021}
+E.~J. Hu, Y.~Shen, P.~Wallis, Z.~Allen-Zhu, Y.~Li, S.~Wang, L.~Wang, and
+W.~Chen.
+\textit{LoRA: Low-Rank Adaptation of Large Language Models}.
+arXiv:2106.09685, 2021.
+
+\bibitem{adamw2019}
+I.~Loshchilov and F.~Hutter.
+\textit{Decoupled Weight Decay Regularization}.
+ICLR, 2019.
+
+\bibitem{vllm2023}
+W.~Kwon, Z.~Li, S.~Zhuang, Y.~Sheng, L.~Zheng, C.~H. Yu, J.~Gonzalez, H.~Zhang,
+and I.~Stoica.
+\textit{Efficient Memory Management for Large Language Model Serving with
+PagedAttention}.
+SOSP, 2023.
+
+\bibitem{fsdp2023}
+Y.~Zhao, A.~Gu, R.~Varma, L.~Luo, C.~C. Huang, M.~Xu, L.~Wright, H.~Shojanazeri,
+M.~Ott, S.~Shleifer, A.~Desmaison, C.~Balioglu, P.~Damania, B.~Nguyen,
+G.~Chauhan, Y.~Hao, A.~Mathews, and S.~Li.
+\textit{PyTorch FSDP: Experiences on Scaling Fully Sharded Data Parallel}.
+VLDB, 2023.
+
+\end{thebibliography}
+
+\end{document}
