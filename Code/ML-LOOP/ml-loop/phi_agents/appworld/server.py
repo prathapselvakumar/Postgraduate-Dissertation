@@ -36,7 +36,18 @@ def launch_appworld_environment_server(
         args.append("--docker")
     if appworld_root:
         args.extend(["--root", appworld_root])
-    return subprocess.Popen(args, stdout=subprocess.DEVNULL if stdout_to_devnull else None)
+    
+    # Always log the output to a file for debugging, unless stdout_to_devnull is specifically set
+    # and we don't care about debugging. But wait, during launch failures, we always want logs.
+    # So we write to logs/appworld/server_{port}.log.
+    log_dir = Path("logs/appworld")
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_file_path = log_dir / f"server_{port or 'default'}.log"
+    
+    f = open(log_file_path, "w", encoding="utf-8")
+    proc = subprocess.Popen(args, stdout=f, stderr=subprocess.STDOUT)
+    f.close()
+    return proc
 
 
 def stop_appworld_environment_server(popen: subprocess.Popen[bytes]) -> None:

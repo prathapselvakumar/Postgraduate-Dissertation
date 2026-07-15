@@ -185,7 +185,20 @@ class AppWorldInterface:
                     self._init_server()
 
             if response is None:
-                raise RuntimeError(f"Could not connect to {self._remote_environment_url}")
+                exit_code = self.server.poll()
+                error_msg = f"Could not connect to {self._remote_environment_url}. Exit code: {exit_code}."
+                log_file = os.path.join("logs", "appworld", f"server_{self.port}.log")
+                if os.path.exists(log_file):
+                    error_msg += f" Log file: {os.path.abspath(log_file)}"
+                    try:
+                        with open(log_file, "r", encoding="utf-8", errors="ignore") as lf:
+                            lines = lf.readlines()
+                            if lines:
+                                snippet = "".join(lines[-25:])
+                                error_msg += f"\nLast 25 lines of log:\n========================================\n{snippet}========================================"
+                    except Exception as le:
+                        error_msg += f" (Failed to read log file: {le})"
+                raise RuntimeError(error_msg)
         except Exception:
             self.server.terminate()
             logger.exception("Error occured when waiting for AppWorld server to be ready.")
