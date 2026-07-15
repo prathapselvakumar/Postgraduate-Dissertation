@@ -1,171 +1,163 @@
 #!/bin/bash
+# ==============================================================================
 # One-time environment setup script for RunPod.
-# This script should be executed from the project root inside the RunPod container.
+# Run this once after cloning the repository.
+# ==============================================================================
 
-# Exit on any error
-set -e
+set -euo pipefail
 
 echo "========================================================"
 echo "Starting RunPod setup for ml-loop..."
 echo "========================================================"
 
-# Determine project root
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
-cd "$PROJECT_ROOT"
+PROJECT_ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
+cd "${PROJECT_ROOT}"
 
 # ==============================================================================
-# GPU & CUDA PRE-VERIFICATION
+# LOAD CREDENTIALS
 # ==============================================================================
-echo "Checking CUDA device counts..."
-if ! command -v python3 &> /dev/null; then
-    echo "ERROR: python3 is not installed or not in PATH." >&2
+if [ -f "/workspace/ml-loop.env" ]; then
+    echo "Loading credentials from /workspace/ml-loop.env..."
+    source /workspace/ml-loop.env
+elif [ -f "${PROJECT_ROOT}/ml-loop.env" ]; then
+    echo "Loading credentials from ${PROJECT_ROOT}/ml-loop.env..."
+    source "${PROJECT_ROOT}/ml-loop.env"
+else
+    echo "ERROR: ml-loop.env not found."
     exit 1
 fi
 
-GPU_COUNT=$(python3 -c "import torch; print(torch.cuda.device_count())" 2>/dev/null || echo "0")
-echo "Detected system GPUs: $GPU_COUNT"
-if [ "$GPU_COUNT" -lt 4 ]; then
-    echo "WARNING: Expected 4 H200 GPUs for optimal configuration, but found $GPU_COUNT."
-fi
-
-# ==============================================================================
-# CREDENTIALS SETUP
-# ==============================================================================
-# First check if they are already in the environment
 if [ -z "${HF_TOKEN:-}" ] || [ -z "${WANDB_API_KEY:-}" ]; then
-    # Otherwise check if a secrets file exists
-    SECRETS_FILE="/workspace/ml-loop.env"
-    if [ -f "$SECRETS_FILE" ]; then
-        echo "Loading credentials from $SECRETS_FILE..."
-        source "$SECRETS_FILE"
-    elif [ -f "${PROJECT_ROOT}/ml-loop.env" ]; then
-        echo "Loading credentials from ${PROJECT_ROOT}/ml-loop.env..."
-        source "${PROJECT_ROOT}/ml-loop.env"
-    fi
-fi
-
-# Assert credentials are set
-if [ -z "${HF_TOKEN:-}" ]; then
-    echo "ERROR: HF_TOKEN is not set. Please export HF_TOKEN or define it in /workspace/ml-loop.env" >&2
+    echo "ERROR: HF_TOKEN and WANDB_API_KEY must be set."
     exit 1
 fi
 
-if [ -z "${WANDB_API_KEY:-}" ]; then
-    echo "ERROR: WANDB_API_KEY is not set. Please export WANDB_API_KEY or define it in /workspace/ml-loop.env" >&2
-    exit 1
+# ==============================================================================
+# INSTALL POETRY
+# ==============================================================================
+echo
+echo "1. Installing Poetry..."
+
+if ! command -v poetry >/dev/null 2>&1; then
+    curl -sSL https://install.python-poetry.org | python3 -
 fi
 
-# Ensure secrets are saved to a file so the run script can also load them
-SECRETS_FILE="/workspace/ml-loop.env"
-if [ ! -f "$SECRETS_FILE" ]; then
-    echo "Saving credentials to $SECRETS_FILE for runner script access..."
-    mkdir -p "$(dirname "$SECRETS_FILE")"
-    cat <<EOF > "$SECRETS_FILE"
-export HF_TOKEN="$HF_TOKEN"
-export WANDB_API_KEY="$WANDB_API_KEY"
-EOF
-    chmod 600 "$SECRETS_FILE"
-fi
+export PATH="$HOME/.local/bin:$PATH"
+
+echo "Poetry:"
+poetry --version
 
 # ==============================================================================
-# SYSTEM DEPENDENCIES
+# CREATE PYTHON ENVIRONMENT
 # ==============================================================================
-echo "1. Installing system dependencies..."
-if command -v apt-get &> /dev/null; then
-    # Check if we run as root or need sudo
-    if [ "$(id -u)" -eq 0 ]; then
-        apt-get update && apt-get install -y python3-venv python3-pip git tmux
-    else
-        sudo apt-get update && sudo apt-get install -y python3-venv python3-pip git tmux
-    fi
-fi
+echo
+echo "2. Installing Python dependencies..."
 
-# Ensure local user path is set
-export PATH="${HOME}/.local/bin:${PATH}"
-
-# Install Poetry if not present
-if ! command -v poetry &> /dev/null; then
-    echo "Poetry not found. Installing Poetry..."
-    python3 -m pip install --user poetry --break-system-packages || python3 -m pip install --user poetry
-fi
-
-# ==============================================================================
-# PYTHON ENVIRONMENT SETUP
-# ==============================================================================
-echo "2. Setting up Poetry environment inheriting system packages..."
-# Create virtualenv that inherits system PyTorch 2.8.0 and CUDA libraries
-python3 -m venv --system-site-packages .venv
-source .venv/bin/activate
-
-# Configure poetry to use the active virtualenv
 poetry config virtualenvs.in-project true
-poetry install --no-root
 
-# Install compilation dependencies (ninja & flash-attn)
-echo "Installing ninja..."
-pip install ninja
-
-echo "Installing flash-attn..."
-# Build without isolation so it can leverage the pre-installed PyTorch build
-pip install flash-attn --no-build-isolation || echo "WARNING: flash-attn compilation failed. Continuing without it..."
+poetry install
 
 # ==============================================================================
-# APPWORLD SETUP
+# CREATE APPWORLD ENVIRONMENT
 # ==============================================================================
-echo "3. Creating separate AppWorld virtualenv..."
+echo
+echo "3. Creating AppWorld virtual environment..."
+
+rm -rf appworld-env
+
 python3 -m venv appworld-env
-appworld-env/bin/pip install click==8.2.1 appworld
 
-echo "4. Installing AppWorld environments..."
+appworld-env/bin/pip install --upgrade pip
+
+appworld-env/bin/pip install \
+    click==8.2.1 \
+    appworld
+
+# ==============================================================================
+# INSTALL APPWORLD
+# ==============================================================================
+echo
+echo "4. Installing AppWorld..."
+
 appworld-env/bin/appworld install
 
-# Set up and download AppWorld data to persistent volume
-echo "5. Downloading AppWorld datasets..."
+# ==============================================================================
+# DOWNLOAD DATASET
+# ==============================================================================
+echo
+echo "5. Downloading AppWorld dataset..."
+
 export APPWORLD_ROOT="/workspace/appworld_data"
+
 mkdir -p "${APPWORLD_ROOT}"
-appworld-env/bin/appworld download data --root "${APPWORLD_ROOT}"
+
+appworld-env/bin/appworld download data \
+    --root "${APPWORLD_ROOT}"
 
 # ==============================================================================
-# MODEL DOWNLOADS (CACHED CHECK)
+# HUGGINGFACE CACHE
 # ==============================================================================
-# Pre-download HF models to persistent volume
-echo "6. Checking/Pre-downloading HuggingFace models..."
-export TRANSFORMERS_CACHE="/workspace/.cache/huggingface"
+echo
+echo "6. Downloading HuggingFace models..."
+
 export HF_HOME="/workspace/.cache/huggingface"
-export HF_DATASETS_CACHE="/workspace/.cache/huggingface/datasets"
+export TRANSFORMERS_CACHE="${HF_HOME}"
+
 mkdir -p "${HF_HOME}"
 
-# Function to check if model has been already cached
-check_model_cached() {
-    local model_name=$1
-    # Replacing / with -- to check the folder format in huggingface cache hub
-    local folder_name="models--$(echo "$model_name" | tr '/' '--')"
-    if [ -d "${HF_HOME}/hub/${folder_name}" ]; then
-        return 0
-    else
-        return 1
-    fi
-}
+poetry run python - <<EOF
+from huggingface_hub import snapshot_download
 
-# Download Qwen2.5-32B-Instruct if not cached
-if check_model_cached "Qwen/Qwen2.5-32B-Instruct"; then
-    echo "Model Qwen/Qwen2.5-32B-Instruct is already cached. Skipping download."
-else
-    echo "Downloading Qwen/Qwen2.5-32B-Instruct..."
-    poetry run python -c "from huggingface_hub import snapshot_download; snapshot_download('Qwen/Qwen2.5-32B-Instruct', token='$HF_TOKEN')"
-fi
+snapshot_download(
+    "Qwen/Qwen2.5-32B-Instruct",
+    token="${HF_TOKEN}"
+)
 
-# Download Qwen2.5-7B-Instruct if not cached
-if check_model_cached "Qwen/Qwen2.5-7B-Instruct"; then
-    echo "Model Qwen/Qwen2.5-7B-Instruct is already cached. Skipping download."
-else
-    echo "Downloading Qwen/Qwen2.5-7B-Instruct..."
-    poetry run python -c "from huggingface_hub import snapshot_download; snapshot_download('Qwen/Qwen2.5-7B-Instruct', token='$HF_TOKEN')"
-fi
+snapshot_download(
+    "Qwen/Qwen2.5-7B-Instruct",
+    token="${HF_TOKEN}"
+)
+EOF
 
+# ==============================================================================
+# VERIFY INSTALLATION
+# ==============================================================================
+echo
 echo "========================================================"
-echo "Setup successfully completed!"
-echo "To run the training job, execute:"
-echo "  bash scripts/run_loop_runpod.sh"
+echo "Verifying installation..."
+echo "========================================================"
+
+python3 --version
+
+echo
+poetry --version
+
+echo
+poetry run python --version
+
+echo
+poetry run accelerate env
+
+echo
+nvidia-smi
+
+echo
+echo "AppWorld version:"
+appworld-env/bin/appworld --version || true
+
+echo
+echo "========================================================"
+echo "RunPod setup completed successfully!"
+echo
+echo "Start training with:"
+echo
+echo "bash scripts/run_loop_runpod.sh two_learn_two_infer runpod_32b"
+echo
+echo "Or for 4-GPU shared mode:"
+echo
+echo "bash scripts/run_loop_runpod.sh four_learn_four_infer_shared runpod_32b"
+echo
+echo "Monitor training:"
+echo
+echo "tail -f /workspace/logs/runpod_32b.log"
 echo "========================================================"
