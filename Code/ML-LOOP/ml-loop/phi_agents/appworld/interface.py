@@ -125,7 +125,7 @@ class AppWorldInterface:
         """
         self._server: subprocess.Popen[bytes] | None = None
         self._docker: bool = False  # avoiding docker within docker
-        self._max_wait_tries: int = 5
+        self._max_wait_tries: int = 30
         self._wait_seconds: float = 1.0
         self._stdout_to_devnull = stdout_to_devnull
         self._init_server()
