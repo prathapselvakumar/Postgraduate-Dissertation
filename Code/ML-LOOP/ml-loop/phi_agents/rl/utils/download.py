@@ -36,13 +36,32 @@ def locate_hf_cli() -> str | None:
 def download_model(
     name_or_path: str, hf_args: list[str] | None = None, base_dir: Path | None = None
 ) -> str:
+    if fu.exists(name_or_path):
+        return name_or_path
+
     name_or_path_parts = Path(name_or_path).parts
     base_dir = base_dir or Path.cwd()
-    dst_name = (
-        base_dir / ".model_cache" / name_or_path_parts[-2] / name_or_path_parts[-1]
-    ).as_posix()
+    try:
+        dst_name = (
+            base_dir / ".model_cache" / name_or_path_parts[-2] / name_or_path_parts[-1]
+        ).as_posix()
+    except IndexError:
+        dst_name = (base_dir / ".model_cache" / name_or_path).as_posix()
 
-    if not fu.exists(name_or_path) and safe_hf_repo_exists(name_or_path):
+    if fu.exists(dst_name):
+        return dst_name
+
+    # Try resolving via Hugging Face cache (useful in offline modes)
+    try:
+        from huggingface_hub import try_to_load_from_cache
+        cached_file = try_to_load_from_cache(repo_id=name_or_path, filename="config.json")
+        if isinstance(cached_file, str):
+            logger.info(f"Using cached model from Hugging Face home: {Path(cached_file).parent}")
+            return str(Path(cached_file).parent)
+    except Exception:
+        pass
+
+    if safe_hf_repo_exists(name_or_path):
         cmd = [
             locate_hf_cli(),
             "download",
@@ -98,6 +117,6 @@ def download_adapter(adapter_path: Path) -> Path:
 def safe_hf_repo_exists(repo_id: str) -> bool:
     try:
         return repo_exists(repo_id)  # type: ignore # (hf's lib doesn't have type stubs)
-    except errors.HFValidationError:
+    except Exception:
         pass
     return False

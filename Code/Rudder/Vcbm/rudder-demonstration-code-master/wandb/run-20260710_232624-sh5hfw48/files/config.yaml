@@ -1,0 +1,74 @@
+_wandb:
+    value:
+        cli_version: 0.28.0
+        e:
+            f64l20s5qf9tzb8vhkbzuqco2mzcbgr9:
+                args:
+                    - --policy_learning
+                    - VCBM2
+                    - --target
+                    - "0.99"
+                    - --n_seeds
+                    - "10"
+                    - --use_wandb
+                codePath: Code\Rudder\Vcbm\rudder-demonstration-code-master\watch_repair.py
+                codePathLocal: watch_repair.py
+                cpu_count: 14
+                cpu_count_logical: 20
+                disk:
+                    /:
+                        total: "806672658432"
+                        used: "301126635520"
+                email: iprathapselva@gmail.com
+                executable: C:\Users\prath\AppData\Local\Python\pythoncore-3.14-64\python.exe
+                git:
+                    commit: 7765d902385bbe85c2959caf48773b1eb5820c1b
+                    remote: https://github.com/prathapselvakumar/Postgraduate-Dissertation.git
+                host: DESKTOP-2S12E5B
+                memory:
+                    total: "34029125632"
+                os: Windows-11-10.0.26200-SP0
+                program: D:\Presentations\Masters Data\Postgraduate-Dissertation\Code\Rudder\Vcbm\rudder-demonstration-code-master\watch_repair.py
+                python: CPython 3.14.6
+                root: D:\Presentations\Masters Data\Postgraduate-Dissertation\Code\Rudder\Vcbm\rudder-demonstration-code-master
+                startedAt: "2026-07-10T22:26:24.177002Z"
+                writerId: f64l20s5qf9tzb8vhkbzuqco2mzcbgr9
+        m: []
+        python_version: 3.14.6
+        t:
+            "1":
+                - 1
+            "2":
+                - 1
+            "3":
+                - 2
+                - 13
+                - 16
+            "4": 3.14.6
+            "5": 0.28.0
+            "8":
+                - 3
+            "10":
+                - 20
+            "12": 0.28.0
+            "13": windows-amd64
+env:
+    value: TwoDecisionWatchRepair
+max_episodes:
+    value: 20000
+policy_learning:
+    value: VCBM2
+rnd_seed:
+    value: 6
+target:
+    value: 0.99
+vcbm2_classifier_z:
+    value: 4
+vcbm2_conf_z:
+    value: 2
+vcbm2_eps_min:
+    value: 0.005
+vcbm2_forced_min_samples:
+    value: 300
+vcbm2_warmup_transitions:
+    value: 2000

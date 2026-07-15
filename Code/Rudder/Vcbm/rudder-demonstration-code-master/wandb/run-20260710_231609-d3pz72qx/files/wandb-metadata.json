@@ -1,0 +1,37 @@
+{
+  "os": "Windows-11-10.0.26200-SP0",
+  "python": "CPython 3.14.6",
+  "startedAt": "2026-07-10T22:16:09.089472Z",
+  "args": [
+    "--policy_learning",
+    "VCBM2",
+    "--target",
+    "0.99",
+    "--n_seeds",
+    "10",
+    "--use_wandb"
+  ],
+  "program": "D:\\Presentations\\Masters Data\\Postgraduate-Dissertation\\Code\\Rudder\\Vcbm\\rudder-demonstration-code-master\\watch_repair.py",
+  "codePath": "Code\\Rudder\\Vcbm\\rudder-demonstration-code-master\\watch_repair.py",
+  "codePathLocal": "watch_repair.py",
+  "git": {
+    "remote": "https://github.com/prathapselvakumar/Postgraduate-Dissertation.git",
+    "commit": "7765d902385bbe85c2959caf48773b1eb5820c1b"
+  },
+  "email": "iprathapselva@gmail.com",
+  "root": "D:\\Presentations\\Masters Data\\Postgraduate-Dissertation\\Code\\Rudder\\Vcbm\\rudder-demonstration-code-master",
+  "host": "DESKTOP-2S12E5B",
+  "executable": "C:\\Users\\prath\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe",
+  "cpu_count": 14,
+  "cpu_count_logical": 20,
+  "disk": {
+    "/": {
+      "total": "806672658432",
+      "used": "301110927360"
+    }
+  },
+  "memory": {
+    "total": "34029125632"
+  },
+  "writerId": "ufg8d7kdmuml67c8zvxkcowe7ry053cg"
+}

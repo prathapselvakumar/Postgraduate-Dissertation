@@ -1,0 +1,1 @@
+{"moving_avg_optimal":0.9906666666666667,"episodes":4230,"_timestamp":1.7837217428424494e+09,"episode":4230,"elapsed":19.200403451919556,"_wandb":{"runtime":19},"_step":4230,"converged":true,"_runtime":19,"final_good_pct":99.06666666666666,"poor_decisions":2154}

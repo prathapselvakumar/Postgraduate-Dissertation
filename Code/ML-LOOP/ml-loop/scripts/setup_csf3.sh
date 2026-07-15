@@ -6,16 +6,30 @@
 set -e
 
 # Route network traffic through University of Manchester web proxy on the login node
-export http_proxy="http://webproxy.its.manchester.ac.uk:3128"
-export https_proxy="http://webproxy.its.manchester.ac.uk:3128"
+module load tools/env/proxy2
 
 echo "========================================================"
 echo "Starting CSF3 setup for ml-loop..."
 echo "========================================================"
 
+# ==============================================================================
+# CREDENTIALS
+# Tokens are kept out of this file. Copy ml-loop.env.example to
+# ~/.secrets/ml-loop.env, fill in real values, then: chmod 600 ~/.secrets/ml-loop.env
+# ==============================================================================
+if [ -f "${HOME}/.secrets/ml-loop.env" ]; then
+    source "${HOME}/.secrets/ml-loop.env"
+else
+    echo "ERROR: ${HOME}/.secrets/ml-loop.env not found. See ml-loop.env.example." >&2
+    exit 1
+fi
+
 # Load Python
 echo "1. Loading Python module..."
 module load python/3.13.1
+
+# Fix for missing shared libraries of python/3.13.1 on CSF3
+export LD_LIBRARY_PATH="/opt/apps/pkg/interpreters/python/3.13.1/gcc-14.2.0/lib:${LD_LIBRARY_PATH}"
 
 # Ensure local user path is set
 export PATH="${HOME}/.local/bin:${PATH}"
@@ -47,7 +61,6 @@ appworld-env/bin/appworld download data --root "${APPWORLD_ROOT}"
 
 # Pre-download HF models since compute nodes have no internet access
 echo "6. Pre-downloading HuggingFace models (Qwen-2.5-32B and 7B-Instruct)..."
-export HF_TOKEN="KGAT_811566e15507f7b62dcf15eccc2e219c"
 export HF_HOME="${HOME}/scratch/.cache/huggingface"
 poetry run python -c "from huggingface_hub import snapshot_download; snapshot_download('Qwen/Qwen2.5-32B-Instruct', token='$HF_TOKEN')"
 poetry run python -c "from huggingface_hub import snapshot_download; snapshot_download('Qwen/Qwen2.5-7B-Instruct', token='$HF_TOKEN')"

@@ -178,7 +178,7 @@ class VLLMRolloutWorker:
             base_dir=Path.cwd(),
         )
         # Ensure all the paths are the same
-        assert len(paths) > 0 and paths == [paths[0] * len(paths)]
+        assert len(paths) > 0 and paths == [paths[0]] * len(paths)
         logger.info(f"Done downloading for remote servers. got \n{paths=}")
         local_base_model_path = Path(paths[0])
 

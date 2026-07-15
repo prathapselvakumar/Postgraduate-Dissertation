@@ -195,7 +195,7 @@ class VLLMServer:
 
         # turn off telemetry
         # https://docs.vllm.ai/en/latest/serving/usage_stats.html
-        env["VLLM_NO_USAGE_STATS"] = "0"
+        env["VLLM_NO_USAGE_STATS"] = "1"
 
         env["VLLM_LOGGING_LEVEL"] = "INFO"
 

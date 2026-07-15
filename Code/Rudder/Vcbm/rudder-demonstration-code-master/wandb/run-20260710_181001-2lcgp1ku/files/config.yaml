@@ -1,0 +1,90 @@
+_wandb:
+    value:
+        cli_version: 0.28.0
+        e:
+            i06mfsiv2tdn6ii4h3i03v14as2zc2xu:
+                args:
+                    - --policy_learning
+                    - VCBM
+                    - --target
+                    - "0.99"
+                    - --n_seeds
+                    - "10"
+                    - --use_wandb
+                codePath: Code\Rudder\Vcbm\rudder-demonstration-code-master\watch_repair.py
+                codePathLocal: watch_repair.py
+                cpu_count: 14
+                cpu_count_logical: 20
+                disk:
+                    /:
+                        total: "806672658432"
+                        used: "300842684416"
+                email: iprathapselva@gmail.com
+                executable: C:\Users\prath\AppData\Local\Python\pythoncore-3.14-64\python.exe
+                git:
+                    commit: 7765d902385bbe85c2959caf48773b1eb5820c1b
+                    remote: https://github.com/prathapselvakumar/Postgraduate-Dissertation.git
+                host: DESKTOP-2S12E5B
+                memory:
+                    total: "34029125632"
+                os: Windows-11-10.0.26200-SP0
+                program: D:\Presentations\Masters Data\Postgraduate-Dissertation\Code\Rudder\Vcbm\rudder-demonstration-code-master\watch_repair.py
+                python: CPython 3.14.6
+                root: D:\Presentations\Masters Data\Postgraduate-Dissertation\Code\Rudder\Vcbm\rudder-demonstration-code-master
+                startedAt: "2026-07-10T17:10:01.453057Z"
+                writerId: i06mfsiv2tdn6ii4h3i03v14as2zc2xu
+        m: []
+        python_version: 3.14.6
+        t:
+            "1":
+                - 1
+            "2":
+                - 1
+            "3":
+                - 2
+                - 13
+                - 16
+            "4": 3.14.6
+            "5": 0.28.0
+            "8":
+                - 3
+            "10":
+                - 20
+            "12": 0.28.0
+            "13": windows-amd64
+avg_window:
+    value: 750
+l2_regularization:
+    value: 1e-06
+lb_size:
+    value: 2048
+lstm_lr:
+    value: 0.01
+max_episodes:
+    value: 20000
+max_time:
+    value: 50
+n_lstm:
+    value: 16
+policy_learning:
+    value: VCBM
+policy_lr:
+    value: 0.1
+rnd_seed:
+    value: 10
+target:
+    value: 0.99
+vcbm_conf_z:
+    value: 2
+vcbm_confident_explore_decay:
+    value: 0.9985
+vcbm_confident_explore_prob:
+    value: 0.08
+vcbm_eps_decay:
+    value: 0.995
+vcbm_eps_start:
+    value: 0.2
+vcbm_forced_min_samples:
+    value: 51
+vcbm_min_samples:
+    value: 8
