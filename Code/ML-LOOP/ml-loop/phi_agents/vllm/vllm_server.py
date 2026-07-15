@@ -166,7 +166,7 @@ class VLLMServer:
     ):
         self._port = port
         self._rpc_port = rpc_port
-        self.host = "localhost"
+        self.host = "127.0.0.1"
         self._url = f"http://{self.host}:{self._port}"
         self._base_model_path = None
         self._cuda_visible_devices = cuda_visible_devices

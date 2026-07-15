@@ -146,7 +146,7 @@ class AppWorldInterface:
             appworld_root=appworld_root,
             stdout_to_devnull=self._stdout_to_devnull,
         )
-        self._remote_environment_url = f"http://localhost:{self._port}"
+        self._remote_environment_url = f"http://127.0.0.1:{self._port}"
 
     def raise_if_server_closed(self) -> None:
         if self.clean:
