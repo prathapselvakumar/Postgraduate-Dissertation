@@ -13,3 +13,6 @@ Output Logs/
 .agents/
 Code/Output Logs/
 .vscode/
+*.wandb
+wandb/
+
