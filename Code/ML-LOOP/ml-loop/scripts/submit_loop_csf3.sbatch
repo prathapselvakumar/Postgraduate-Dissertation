@@ -124,7 +124,7 @@ fi
 
 if command -v module >/dev/null 2>&1 || declare -f module >/dev/null; then
     echo "Loading modules..."
-    module load anaconda3/2023.09 || module load anaconda3/2022.10 || echo "WARNING: Anaconda module load failed."
+    module load python/3.13.1 || echo "WARNING: Python module load failed."
     module load cuda/12.1 || module load cuda/12.4 || echo "WARNING: CUDA module load failed."
 fi
 

@@ -67,8 +67,8 @@ if [ -f /etc/profile.d/modules.sh ]; then
 fi
 
 if command -v module >/dev/null 2>&1 || declare -f module >/dev/null; then
-    echo "Loading python/anaconda3 module..."
-    module load anaconda3/2023.09 || module load anaconda3/2022.10 || echo "WARNING: Could not load Anaconda module. Proceeding with default environment."
+    echo "Loading python module..."
+    module load python/3.13.1 || echo "WARNING: Could not load python module. Proceeding with default environment."
 fi
 
 # ==============================================================================
