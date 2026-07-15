@@ -117,6 +117,8 @@ class VLLMRolloutWorker:
         self._runner_idx_to_vllm_server_port: list[int] = [None] * num_runners  # type: ignore
 
         def _create_runner(runner_idx_: int) -> tuple[int, int, ScenarioRunner]:
+            # Stagger startup to avoid CPU spikes and port binding race conditions when spawning many processes
+            time.sleep(runner_idx_ * 0.25)
             global_runner_idx = local_rank * num_runners + runner_idx_
             port = self._vllm_server_ports[global_runner_idx % len(self._vllm_server_ports)]
             runner = cast(

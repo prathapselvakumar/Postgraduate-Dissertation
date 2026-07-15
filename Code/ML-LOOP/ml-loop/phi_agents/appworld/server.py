@@ -3,6 +3,7 @@
 # Copyright (C) 2025 Apple Inc. All Rights Reserved.
 #
 
+import os
 import signal
 import subprocess
 from pathlib import Path
@@ -44,8 +45,11 @@ def launch_appworld_environment_server(
     log_dir.mkdir(parents=True, exist_ok=True)
     log_file_path = log_dir / f"server_{port or 'default'}.log"
     
+    # Unbuffer python stdout/stderr inside the server subprocess
+    env = dict(os.environ, PYTHONUNBUFFERED="1")
+    
     f = open(log_file_path, "w", encoding="utf-8")
-    proc = subprocess.Popen(args, stdout=f, stderr=subprocess.STDOUT)
+    proc = subprocess.Popen(args, stdout=f, stderr=subprocess.STDOUT, env=env)
     f.close()
     return proc
 
