@@ -39,9 +39,7 @@ Two research tracks are maintained in parallel:
 | Track | Purpose | Baseline | VCC variant |
 |---|---|---|---|
 | `Code/Rudder/` | Small-scale proof of concept (pocket-watch repair task) | `1. RUDDER-Baseline` | `2. VCC-Experiment` |
-| `Code/ML-Loop/` | Main-line experiments on the [AppWorld](https://appworld.dev/) benchmark, forked from [apple/ml-loop](https://github.com/apple/ml-loop) | `1. LOOP-Baseline`¹ | `2. VCC-Experiment` |
-
-¹ Pending rename — see [Code/README.md](Code/README.md) footnote.
+| `Code/ML-Loop/` | Main-line experiments on the [AppWorld](https://appworld.dev/) benchmark, forked from [apple/ml-loop](https://github.com/apple/ml-loop) | `1. LOOP-Baseline` | `2. VCC-Experiment` |
 
 ### [Documentation/](Documentation/)
 

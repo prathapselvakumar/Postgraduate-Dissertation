@@ -29,12 +29,9 @@ collide.
 
 | Folder | Description |
 |---|---|
-| `1. LOOP-Baseline/`¹ | Unmodified LOOP training/eval pipeline (leave-one-out PPO) |
+| `1. LOOP-Baseline/` | Unmodified LOOP training/eval pipeline (leave-one-out PPO) |
 | `2. VCC-Experiment/` | LOOP pipeline patched with the VCC event detector and memory bank |
 | `3. Outputs/` | Weights & Biases run exports (PDF) |
-
-¹ *Pending rename: still on disk as `1. ML-Loop/` — an open editor held a lock on it during the
-last reorg pass. Rename manually once no editor/terminal has it open, then update this table.*
 
 See each submodule's own `README.md` for installation, training, and CSF3 cluster usage
 (`scripts/README_CSF3.md`).
