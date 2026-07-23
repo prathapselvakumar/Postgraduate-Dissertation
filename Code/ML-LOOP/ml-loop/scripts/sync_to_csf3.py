@@ -20,7 +20,7 @@ EXCLUDES = {
 def load_env(env_path):
     env = {}
     if os.path.exists(env_path):
-        with open(env_path, 'r') as f:
+        with open(env_path, 'r', encoding='utf-8', errors='ignore') as f:
             for line in f:
                 # Match export VAR="VAL" or VAR="VAL"
                 match = re.match(r'^\s*(?:export\s+)?(\w+)\s*=\s*["\']?(.*?)["\']?\s*$', line)
@@ -38,8 +38,7 @@ def should_exclude(path, base_path):
 
 def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    # Project root is Code/Ml-Loop (parent of ml-loop directory)
-    project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
+    # Local ml-loop root directory (where scripts/ folder lives)
     ml_loop_dir = os.path.abspath(os.path.join(script_dir, '..'))
     env_path = os.path.join(ml_loop_dir, 'ml-loop.env')
     
@@ -59,11 +58,12 @@ def main():
         sys.exit(1)
         
     csf3_host = "csf3.itservices.manchester.ac.uk"
-    remote_dir = "~/scratch/Postgraduate-Dissertation"
+    # Target directory on CSF3 parent to ml-loop
+    remote_dir = "~/scratch/Postgraduate-Dissertation/Code/ML-LOOP"
     
     print("=========================================================================")
     print("Preparing local archive...")
-    print(f"Source: {project_root}")
+    print(f"Source: {ml_loop_dir}")
     print("=========================================================================")
     
     temp_dir = tempfile.gettempdir()
@@ -73,14 +73,16 @@ def main():
     # Create the tar.gz archive
     try:
         with tarfile.open(tar_path, "w:gz") as tar:
-            for root, dirs, files in os.walk(project_root):
+            for root, dirs, files in os.walk(ml_loop_dir):
                 # Prune excluded directories in-place to speed up walk
                 dirs[:] = [d for d in dirs if d not in EXCLUDES]
                 for file in files:
                     full_path = os.path.join(root, file)
-                    if not should_exclude(full_path, project_root):
-                        rel_path = os.path.relpath(full_path, project_root)
-                        tar.add(full_path, arcname=rel_path)
+                    if not should_exclude(full_path, ml_loop_dir):
+                        # Force standard relative path with ml-loop/ prefix
+                        rel_path = os.path.relpath(full_path, ml_loop_dir)
+                        arcname = os.path.join('ml-loop', rel_path).replace(os.sep, '/')
+                        tar.add(full_path, arcname=arcname)
     except Exception as e:
         print(f"ERROR: Failed to create local archive: {e}")
         sys.exit(1)
@@ -109,17 +111,14 @@ def main():
     print("=========================================================================")
     
     # SSH commands to:
-    # 1. Ensure target directory exists.
-    # 2. Clean remote ml-loop files except for environments, logs, and checkpoints.
-    # 3. Clean other remote top-level files except for ml-loop directory itself.
-    # 4. Extract tarball.
-    # 5. Remove remote archive.
+    # 1. Ensure target parent directory exists.
+    # 2. Clean remote ml-loop files except for environments, logs, checkpoints, and credentials.
+    # 3. Extract tarball.
+    # 4. Remove remote archive.
     ssh_commands = [
         f"mkdir -p {remote_dir}",
-        # Clean remote ml-loop folder of stale files, protecting python virtualenvs, logs, and checkpoints
-        f"if [ -d {remote_dir}/ml-loop ]; then find {remote_dir}/ml-loop -mindepth 1 -maxdepth 1 ! -name '.venv' ! -name 'appworld-env' ! -name 'logs' ! -name 'checkpoints' -exec rm -rf {{}} +; fi",
-        # Clean other top-level directories under remote_dir except the main codebase directory
-        f"if [ -d {remote_dir} ]; then find {remote_dir} -mindepth 1 -maxdepth 1 ! -name 'ml-loop' -exec rm -rf {{}} +; fi",
+        # Clean remote ml-loop folder of stale files, protecting python virtualenvs, logs, checkpoints, and credentials env file
+        f"if [ -d {remote_dir}/ml-loop ]; then find {remote_dir}/ml-loop -mindepth 1 -maxdepth 1 ! -name '.venv' ! -name 'appworld-env' ! -name 'logs' ! -name 'checkpoints' ! -name 'ml-loop.env' -exec rm -rf {{}} +; fi",
         f"tar -xzf {remote_tar_path} -C {remote_dir}",
         f"rm -f {remote_tar_path}"
     ]

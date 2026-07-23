@@ -166,7 +166,7 @@ class VLLMServer:
     ):
         self._port = port
         self._rpc_port = rpc_port
-        self.host = "127.0.0.1"
+        self.host = "localhost"
         self._url = f"http://{self.host}:{self._port}"
         self._base_model_path = None
         self._cuda_visible_devices = cuda_visible_devices
@@ -195,7 +195,7 @@ class VLLMServer:
 
         # turn off telemetry
         # https://docs.vllm.ai/en/latest/serving/usage_stats.html
-        env["VLLM_NO_USAGE_STATS"] = "1"
+        env["VLLM_NO_USAGE_STATS"] = "0"
 
         env["VLLM_LOGGING_LEVEL"] = "INFO"
 
@@ -293,6 +293,10 @@ class VLLMServer:
 
         if self._conf.eager_mode:
             args.append("--enforce-eager")
+            # In vLLM v1 engine (v0.10+), --enforce-eager only disables CUDA graphs
+            # but torch.compile/Inductor (level=3) still runs and requires nvcc.
+            # Explicitly set compilation level=0 to fully disable torch.compile.
+            args.append('--compilation-config={"level": 0}')
 
         logger.info(
             f"Just in case, checking if we still need to kill the process using port {str(self.port)}..."

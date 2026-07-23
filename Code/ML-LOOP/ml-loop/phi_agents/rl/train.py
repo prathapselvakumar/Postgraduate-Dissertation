@@ -9,6 +9,7 @@ import itertools
 import json
 import math
 import os
+import signal
 import sys
 import tempfile
 from collections.abc import Iterable, Sequence
@@ -858,7 +859,23 @@ class RLOOTrainer:
         assert new_log_probs.shape == (n_tokens,)
         tokens = tokens.cpu()
 
-        advantage_estimates = torch.tensor(monte_carlo_advantage, device=new_log_probs.device)
+        if self._cfg.get("use_vcc_credit", False) and hasattr(rollout, "turn_bookmarks") and rollout.turn_bookmarks:
+            from phi_agents.rl.vcc.credit_weights import compute_credit_weights
+            bookmark_weights = compute_credit_weights(
+                rollout.turn_bookmarks,
+                rollout.turn_token_spans,
+                alpha=self._cfg.get("vcc_alpha", 0.1),
+                device=new_log_probs.device
+            )
+            if len(bookmark_weights) > n_output_tokens:
+                bookmark_weights = bookmark_weights[:n_output_tokens]
+            elif len(bookmark_weights) < n_output_tokens:
+                # pad weights with alpha in case of mismatched lengths
+                padding = torch.full((n_output_tokens - len(bookmark_weights),), self._cfg.get("vcc_alpha", 0.1), device=new_log_probs.device)
+                bookmark_weights = torch.cat([bookmark_weights, padding])
+            advantage_estimates = torch.tensor(monte_carlo_advantage, device=new_log_probs.device) * bookmark_weights
+        else:
+            advantage_estimates = torch.tensor(monte_carlo_advantage, device=new_log_probs.device)
 
         # compute importance weight
         new_log_probs_output_only = new_log_probs[is_output]
@@ -1518,7 +1535,9 @@ class RLOOTrainer:
             # check if there is an existing checkpoint, and if so, resume from it
             if (last_checkpoint := get_last_checkpoint(self._cfg.cloud_path)) is not None:
                 last_checkpoint_local_path = self._local_path / last_checkpoint.name
-                fu.copy(last_checkpoint, last_checkpoint_local_path)
+                with barrier_guard(before=False, after=True):
+                    if self._local_rank == 0:
+                        fu.copy(last_checkpoint, last_checkpoint_local_path)
                 self._load_trainer_state(last_checkpoint_local_path)
             else:
                 last_checkpoint_local_path = None
@@ -1806,6 +1825,15 @@ class RLOOTrainer:
 
 
 def main() -> int:
+    # Convert SLURM's pre-kill SIGTERM into KeyboardInterrupt so all ranks
+    # exit through the already-guarded finally: block in run() rather than
+    # crashing with SIGABRT inside NCCL.
+    def _sigterm_handler(signum: int, frame: object) -> None:
+        logger.warning("SIGTERM received — raising KeyboardInterrupt for clean shutdown.")
+        raise KeyboardInterrupt("SIGTERM")
+
+    signal.signal(signal.SIGTERM, _sigterm_handler)
+
     logger.info(sys.argv[1:])
     _cfg = get_config(mode="train", overrides=sys.argv[1:])
 

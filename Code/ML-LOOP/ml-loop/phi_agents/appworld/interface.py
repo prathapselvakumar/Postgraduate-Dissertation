@@ -125,8 +125,8 @@ class AppWorldInterface:
         """
         self._server: subprocess.Popen[bytes] | None = None
         self._docker: bool = False  # avoiding docker within docker
-        self._max_wait_tries: int = 120
-        self._wait_seconds: float = 1.0
+        self._max_wait_tries: int = 60   # increased: AppWorld dataset load takes 60-120s on compute nodes
+        self._wait_seconds: float = 2.0   # 2s between attempts → 120s total wait per server
         self._stdout_to_devnull = stdout_to_devnull
         self._init_server()
         self.timeout_seconds = timeout_seconds
@@ -146,7 +146,7 @@ class AppWorldInterface:
             appworld_root=appworld_root,
             stdout_to_devnull=self._stdout_to_devnull,
         )
-        self._remote_environment_url = f"http://127.0.0.1:{self._port}"
+        self._remote_environment_url = f"http://localhost:{self._port}"
 
     def raise_if_server_closed(self) -> None:
         if self.clean:
@@ -185,20 +185,7 @@ class AppWorldInterface:
                     self._init_server()
 
             if response is None:
-                exit_code = self.server.poll()
-                error_msg = f"Could not connect to {self._remote_environment_url}. Exit code: {exit_code}."
-                log_file = os.path.join("logs", "appworld", f"server_{self.port}.log")
-                if os.path.exists(log_file):
-                    error_msg += f" Log file: {os.path.abspath(log_file)}"
-                    try:
-                        with open(log_file, "r", encoding="utf-8", errors="ignore") as lf:
-                            lines = lf.readlines()
-                            if lines:
-                                snippet = "".join(lines[-25:])
-                                error_msg += f"\nLast 25 lines of log:\n========================================\n{snippet}========================================"
-                    except Exception as le:
-                        error_msg += f" (Failed to read log file: {le})"
-                raise RuntimeError(error_msg)
+                raise RuntimeError(f"Could not connect to {self._remote_environment_url}")
         except Exception:
             self.server.terminate()
             logger.exception("Error occured when waiting for AppWorld server to be ready.")
@@ -299,9 +286,10 @@ class AppWorldInterface:
         try:
             response.raise_for_status()
         except requests.HTTPError as exception:
-            logger.exception(
-                f"AppWorld remote environment call to method '{method_name}' failed: {response.text}."
-            )
+            if response.status_code != 404:
+                logger.exception(
+                    f"AppWorld remote environment call to method '{method_name}' failed: {response.text}."
+                )
             raise exception
 
         return response.json()["output"]
@@ -319,6 +307,30 @@ class AppWorldInterface:
         # self.environment_io.append({"input": code, "output": message})
         self.executed_code.append(code)
         return cast(str, message)
+
+    def execute_with_bookmark(self, code: str) -> tuple[str, bool]:
+        """
+        Execute code and detect whether it produced a visual bookmark.
+
+        Args:
+            code: Python code block to execute
+
+        Returns:
+            output: execution result string
+            is_bookmark: True if this turn caused a persistent state change
+        """
+        self.raise_if_server_closed()
+        try:
+            res = self._remote_environment_call("execute_with_bookmark", code=code)
+            self.executed_code.append(code)
+            return res["output"], res["is_bookmark"]
+        except requests.HTTPError as e:
+            if e.response is not None and e.response.status_code == 404:
+                output = self.execute(code)
+                return output, False
+            raise AppWorldExecutionError from e
+        except Exception as e:
+            raise AppWorldExecutionError from e
 
     def get_state(self) -> tuple[str, str, Sequence[str]]:
         assert self._task_id is not None

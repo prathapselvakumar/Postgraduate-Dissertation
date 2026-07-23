@@ -10,7 +10,7 @@ This document describes how to sync, setup, and run the `ml-loop` reinforcement 
 If connecting from off-campus, you **must** connect to the University of Manchester **GlobalProtect VPN** before executing any SSH or sync commands.
 
 ### Credentials
-Create a file named `ml-loop.env` in your local project root (`Code/Ml-Loop/ml-loop/ml-loop.env`) with your tokens:
+Create a file named `ml-loop.env` in your local project root (`ml-loop/ml-loop.env`) with your tokens. This file is excluded from Git to protect your secrets:
 ```bash
 export HF_TOKEN="your_huggingface_write_token"
 export WANDB_API_KEY="your_wandb_api_key"
@@ -35,16 +35,16 @@ The scripts will automatically detect this and route traffic securely through yo
 
 ## 2. Step 1: Sync local code to CSF3
 
-You can run the synchronization script directly from your local PowerShell terminal:
+You can run the synchronization script directly from your local PowerShell terminal (from the project root):
 ```powershell
-python Code/Ml-Loop/ml-loop/scripts/sync_to_csf3.py
+python scripts/sync_to_csf3.py
 ```
-*(If you are already in the `Code/Ml-Loop/ml-loop` directory, you can run `python scripts/sync_to_csf3.py` or `bash scripts/sync_to_csf3.sh`).*
+*(Alternatively, you can run `bash scripts/sync_to_csf3.sh`).*
 
 This Python script does not require `rsync` on Windows. Instead, it:
 1. Archives your local codebase into a temporary `.tar.gz` file (excluding large dependencies like `.venv`, `appworld-env`, `logs`, checkpoints, and `.git` metadata).
 2. Uploads the archive to CSF3 via standard `scp`.
-3. SSHs into CSF3 to extract it in `~/scratch/Postgraduate-Dissertation` and performs a clean mirroring by deleting extraneous remote files (while carefully preserving cluster-local directories like `appworld-env`, `.venv`, `checkpoints`, and `logs`).
+3. SSHs into CSF3 to extract it in `~/scratch/Postgraduate-Dissertation/Code/ML-LOOP/ml-loop` and performs a clean mirroring by deleting extraneous remote files (while carefully preserving cluster-local directories like `appworld-env`, `.venv`, `checkpoints`, and `logs`).
 
 ---
 
@@ -57,14 +57,14 @@ ssh t83821ps@csf3.itservices.manchester.ac.uk
 
 Navigate to the synced workspace and run the setup script:
 ```bash
-cd ~/scratch/Postgraduate-Dissertation/Code/Ml-Loop/ml-loop
+cd ~/scratch/Postgraduate-Dissertation/Code/ML-LOOP/ml-loop
 bash scripts/setup_csf3.sh
 ```
 
 ### What `setup_csf3.sh` does:
-1. **Modules**: Loads the `anaconda3` module.
+1. **Local Miniconda Environment**: Downloads and installs Miniconda to `~/scratch/miniconda3` and creates a Python 3.12 conda environment named `ml-loop`. This bypasses module-loading issues and version conflicts with vLLM on Python 3.13.
 2. **Quota Protection**: Automatically sets all large caching and download directories (`HF_HOME`, `APPWORLD_ROOT`) under `~/scratch` (e.g. `~/scratch/.cache`, `~/scratch/appworld_data`).
-3. **Proxy Configuration**: Sets the university web proxy (`http://webproxy.its.manchester.ac.uk:3128`) to enable internet access during installation.
+3. **Proxy Configuration**: Automatically configures proxy settings or detects direct connections to ensure internet connectivity on the login node.
 4. **Poetry**: Installs Poetry (if not installed) and installs project dependencies into `.venv`.
 5. **AppWorld Env**: Creates a separate `appworld-env` virtualenv and downloads the AppWorld dataset.
 6. **Model Caching**: Downloads Qwen 2.5 32B & 7B Instruct models directly to scratch space.

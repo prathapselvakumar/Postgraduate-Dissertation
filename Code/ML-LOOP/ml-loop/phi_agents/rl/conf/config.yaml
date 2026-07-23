@@ -12,6 +12,9 @@ dry_run: false
 rl:
   seed: null
 
+  use_vcc_credit: true
+  vcc_alpha: 0.1
+
   fsdp: True
 
   cloud_path: experiments/${experiment_name}/${now:%Y-%m-%d_%H-%M-%S}/
@@ -51,7 +54,7 @@ rl:
 
 wandb:
   enable: True
-  entity: phi-agents
-  project: default_project
+  entity: iprathapselva-university-of-manchester-students-union
+  project: Dissertation
   run: null # if null, this is generated automatically
   group: null # if null, the group is constructed from task name and other attributes

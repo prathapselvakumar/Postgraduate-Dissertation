@@ -146,5 +146,6 @@ sandbox/
 .history/
 
 experiments/
-appworld-env/
 
+# CSF3 configuration credentials
+ml-loop.env

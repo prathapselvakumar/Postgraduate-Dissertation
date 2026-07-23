@@ -43,7 +43,7 @@ class VLLMClient:
     """An interface to an LLM that uses a vLLM server."""
 
     def __init__(
-        self, host: str = "127.0.0.1", port: int = 8000, cancellation_event: Event | None = None
+        self, host: str = "localhost", port: int = 8000, cancellation_event: Event | None = None
     ):
         self._url = f"http://{host}:{port}"
         self._cancellation_event = cancellation_event

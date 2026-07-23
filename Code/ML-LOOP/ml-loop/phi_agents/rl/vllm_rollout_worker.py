@@ -117,8 +117,6 @@ class VLLMRolloutWorker:
         self._runner_idx_to_vllm_server_port: list[int] = [None] * num_runners  # type: ignore
 
         def _create_runner(runner_idx_: int) -> tuple[int, int, ScenarioRunner]:
-            # Stagger startup to avoid CPU spikes and port binding race conditions when spawning many processes
-            time.sleep(runner_idx_ * 0.25)
             global_runner_idx = local_rank * num_runners + runner_idx_
             port = self._vllm_server_ports[global_runner_idx % len(self._vllm_server_ports)]
             runner = cast(
@@ -179,8 +177,8 @@ class VLLMRolloutWorker:
             name_or_path=self._llm_cfg.base_model_path,
             base_dir=Path.cwd(),
         )
-        # Ensure all the paths are the same
-        assert len(paths) > 0 and paths == [paths[0]] * len(paths)
+        # Ensure all nodes downloaded to the same path
+        assert len(paths) > 0 and all(p == paths[0] for p in paths)
         logger.info(f"Done downloading for remote servers. got \n{paths=}")
         local_base_model_path = Path(paths[0])
 
