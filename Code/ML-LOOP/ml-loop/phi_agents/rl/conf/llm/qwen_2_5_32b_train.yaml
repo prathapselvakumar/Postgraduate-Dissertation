@@ -1,4 +1,0 @@
-defaults:
-  - qwen_2_5_32b_eval
-
-temperature: 1.0

@@ -15,7 +15,6 @@ Code/Output Logs/
 .vscode/
 *.wandb
 wandb/
-Code/ML-LOOP/ml-loop/data/appworld_root/
-Code/ML-LOOP/ml-loop/~/
-Code/ML-LOOP/Vcbm/
+**/data/appworld_root/
+**/~/
 

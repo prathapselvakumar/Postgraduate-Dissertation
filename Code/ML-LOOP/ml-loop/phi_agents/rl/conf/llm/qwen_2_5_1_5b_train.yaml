@@ -1,4 +1,0 @@
-defaults:
-  - qwen_2_5_1_5b_eval
-
-temperature: 1.0
