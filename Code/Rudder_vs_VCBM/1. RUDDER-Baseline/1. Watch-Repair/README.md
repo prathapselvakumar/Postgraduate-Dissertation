@@ -21,9 +21,10 @@ MC learning is impeded since it has problems with high variance.
 * if plots are desired: matplotlib >= 3.1.0
 
 #### Running the demonstration: 
-```
-python3 watch_repair.py --policy_learning=RUDDER
-```
+cd "Code/Rudder_vs_VCBM/1. RUDDER-Baseline/1. Watch-Repair"
+
+python watch_repair.py --policy_learning=RUDDER
+
 
 Please use the `policy_learning` argument to change the policy learning method.
 Valid options are: 
