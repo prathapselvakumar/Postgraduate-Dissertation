@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import wandb
 from nn import LSTMLayer
 from torch.autograd import Variable
 from torch.nn import MSELoss as MSELoss
@@ -117,6 +118,14 @@ class RRLSTM(nn.Module):
             if main_loss_np > loss_average * 2:
                 loss_average = loss_np
             self.optimizer.step()
+
+            wandb.log({
+                "lstm/main_loss": float(main_loss_np),
+                "lstm/aux_loss": float(aux_loss.data.numpy()),
+                "lstm/lstm_loss": float(loss_np),
+                "lstm/loss_average": float(loss_average),
+                "lstm/updates": self.lstm_updates,
+            })
 
 
 class LessonBuffer:

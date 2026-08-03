@@ -1,6 +1,28 @@
 # rudder-demonstration-code
 Code for demonstration example-task in RUDDER blog. For more materials see the [RUDDER repo](https://github.com/ml-jku/rudder) or the [practical step-by-step guide to applying RUDDER in PyTorch](https://github.com/widmi/rudder-a-practical-tutorial).
 
+## Changes
+Modifications made to this baseline on top of the original RUDDER demo code:
+
+* **Location**: this folder now lives at
+  ```
+  D:\Presentations\Masters Data\Postgraduate-Dissertation\Code\Rudder_vs_VCBM\1. RUDDER-Baseline\1. Watch-Repair
+  ```
+* **Weights & Biases integration** (`watch_repair.py`, `rudder.py`): training runs now log to W&B
+  (project `Dissertation`, group `Rudder vs Vcbm`, run name `Rudder - WR`).
+  * Hyperparameters (`update_rule`, seed(s), `lb_size`, `n_lstm`, `max_time`, `policy_lr`, `lstm_lr`,
+    `l2_regularization`, `avg_window`) are logged as `wandb.config`.
+  * Per-episode metrics logged: `poor_decisions`, `pct_good_decisions`, `episode_reward`, `episode_length`.
+  * LSTM training metrics logged from `RRLSTM.train()`: `lstm/main_loss`, `lstm/aux_loss`, `lstm/lstm_loss`,
+    `lstm/loss_average`, `lstm/updates`.
+  * The final "total number of poor decisions" plot is uploaded as a `wandb.Image`.
+  * `wandb/` (local run data) added to `.gitignore`.
+* **Multi-seed support** (`watch_repair.py`): added `--n_seeds` argument. Training was refactored into a
+  `run_seed(rnd_seed)` function so multiple seeds can run sequentially under a **single** W&B run, with
+  per-episode `poor_decisions_mean/std` and `pct_good_decisions_mean/std` logged across all seeds still
+  active at that episode, plus mean/std of total runtime and episode count, and an overlaid plot of every
+  seed's poor-decisions curve. See "Running multiple seeds under one W&B run" below.
+
 ## A simple RUDDER demo:
 
 We provide an implementation of 
@@ -21,10 +43,10 @@ MC learning is impeded since it has problems with high variance.
 * if plots are desired: matplotlib >= 3.1.0
 
 #### Running the demonstration: 
-cd "Code/Rudder_vs_VCBM/1. RUDDER-Baseline/1. Watch-Repair"
-
-python watch_repair.py --policy_learning=RUDDER
-
+```
+cd "D:\Presentations\Masters Data\Postgraduate-Dissertation\Code\Rudder_vs_VCBM\1. RUDDER-Baseline\1. Watch-Repair"
+python3 watch_repair.py --policy_learning=RUDDER
+```
 
 Please use the `policy_learning` argument to change the policy learning method.
 Valid options are: 
@@ -33,6 +55,13 @@ Valid options are:
 * `MC`: for Monte-Carlo control. (completes after approx.: 150->600sec | 27,700->240,000episodes)
 
 Approximate runtime and number of episodes were estimated from random seeds {1, 2, 3}, where MC did not complete within 10 minutes for 2 random seeds.
+
+#### Running multiple seeds under one W&B run:
+Use `--n_seeds` to run seeds `1..n_seeds` sequentially and log aggregated (mean/std across seeds) metrics
+to a single Weights & Biases run, instead of one run per seed:
+```
+python3 watch_repair.py --policy_learning=RUDDER --n_seeds=20
+```
 
 #### Problem Description:
 ##### Environment:

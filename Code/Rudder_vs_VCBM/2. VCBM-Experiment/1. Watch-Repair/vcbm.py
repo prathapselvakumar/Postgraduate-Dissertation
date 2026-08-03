@@ -1,10 +1,10 @@
 """
-VCBM v2 -- Visual Causal-chain BookMarking with LEARNED bookmark detection.
+VCBM -- Visual Causal-chain BookMarking with LEARNED bookmark detection.
 
-The original tabular VCBM hardcoded the assumption that all credit belongs
-to the decision at t=0. v2 removes that assumption: it DISCOVERS candidate
-causal decision points ("bookmarks") from data, then estimates per-decision
-values only at those points.
+VCBM makes no assumption that credit belongs to a fixed, known decision
+point (e.g. t=0): it DISCOVERS candidate causal decision points
+("bookmarks") from data, then estimates per-decision values only at those
+points.
 
 Pipeline:
 1. TransitionClassifier watches (state, action, next_state) transitions and
@@ -25,7 +25,7 @@ Pipeline:
    how t=0 (and, in multi-decision environments, later decision points) are
    discovered rather than assumed.
 
-3. Value estimation: at each opportunity, VCBM2 keeps Welford running
+3. Value estimation: at each opportunity, VCBM keeps Welford running
    mean/variance of the episode return per (context key, action), where the
    context key is the state projected onto (static + controlled + clock)
    components -- noise components are excluded, which is the sample-sharing
@@ -33,8 +33,8 @@ Pipeline:
 
 4. Action selection at opportunities: forced balanced sampling until each
    (key, action) has enough observations, then a two-sample z-test gated
-   greedy policy with a permanent exploration floor (the lifelong-exploration
-   guarantee that fixed the wrong-lock-in failure in v1).
+   greedy policy with a permanent exploration floor (a lifelong-exploration
+   guarantee, avoiding permanent lock-in onto a wrong action).
    At non-opportunity timesteps the action is chosen uniformly at random:
    before classification converges this supplies the exploration data that
    discovery needs, and after convergence these timesteps are exactly the
@@ -143,7 +143,7 @@ class TransitionClassifier:
         return tuple(int(state[j]) for j in proj_idx)
 
 
-class VCBM2:
+class VCBM:
     """Bookmark-discovering VCBM controller."""
 
     def __init__(self, n_components, n_actions=2,

@@ -68,21 +68,21 @@ class WatchRepairEnvironment:
         done = self.time == self.transport_time
 
         # Generate transport events which increase delivery costs.
-        events = np.array(
-            [np.random.random() < self.transport_condition_probability[i] for i in range(self.n_transport_conditions)], dtype=np.int32)
-        state_changed = np.any(events)
-        self.transport_condition += events
+        transport_cond = self.transport_condition
+        transport_cond += np.array(
+            [np.random.random() < self.transport_condition_probability[i] for i in range(self.n_transport_conditions)])
+        self.transport_condition = transport_cond
 
         if done and self.repaired:
             # Calculate the final reward by adding costs and sales price.
-            transport_cost = np.sum(self.transport_condition * self.transport_cost)
+            transport_cost = np.sum(transport_cond * self.transport_cost)
             brand_related_transport_costs = np.random.normal(self.average_brand_related_transport_cost[self.brand],
                                                              self.brand_related_transport_cost_variance[self.brand])
             brand_sales_price = self.brand_sale_price[self.brand]
             reward += brand_sales_price - transport_cost - brand_related_transport_costs
             self.list.append(transport_cost)
-        newstate = np.array([self.repaired] + self.transport_condition.tolist() + [self.brand, self.time],
-                            dtype=np.int32), reward, done, state_changed
+        newstate = np.array([self.repaired] + transport_cond.tolist() + [self.brand, self.time],
+                            dtype=np.int32), reward, done
         return newstate
 
     # Used for Q-table initialization, provides shape.
@@ -113,7 +113,7 @@ class TabularActor:
         self.state = self.env.reset()
         return self.state
 
-    def act(self, eps=0.10):
+    def act(self):
         state = self.state
         q_s = self.q_table[(slice(0, None),) + tuple(state)]
         # Be greedy
@@ -122,15 +122,15 @@ class TabularActor:
         else:
             a = np.random.choice(2)
 
-        # Explore with eps chance.
-        if np.random.random() < eps:
+        # Explore with 5% chance.
+        if np.random.random() < 0.10:
             a = np.random.choice(2)
         if self.state[-1] > 0:
             a = 1
 
         # Step forward in the environment.
-        self.state, reward, done, state_changed = self.env.step(a)
-        return self.state, a, reward, done, state_changed
+        self.state, reward, done = self.env.step(a)
+        return self.state, a, reward, done
 
     # Three different update rules to change the policy:
 
