@@ -18,4 +18,5 @@ wandb/
 **/data/appworld_root/
 **/~/
 **/IsaacLab/
+**/.env
 
