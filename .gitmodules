@@ -1,6 +1,0 @@
-[submodule "Code/ML-Loop_vs_VCBM/1. LOOP-Baseline"]
-	path = Code/ML-Loop_vs_VCBM/1. LOOP-Baseline
-	url = https://github.com/prathapselvakumar/VCBM.git
-[submodule "Code/ML-Loop_vs_VCBM/2. VCC-Experiment"]
-	path = Code/ML-Loop_vs_VCBM/2. VCC-Experiment
-	url = https://github.com/prathapselvakumar/VCBM.git
