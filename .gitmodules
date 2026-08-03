@@ -4,6 +4,3 @@
 [submodule "Code/ML-Loop_vs_VCBM/2. VCC-Experiment"]
 	path = Code/ML-Loop_vs_VCBM/2. VCC-Experiment
 	url = https://github.com/prathapselvakumar/VCBM.git
-[submodule "Code/RLBench _vs_VCBM/1. RLBench-Baseline/Awesome-Credit-Assignment-in-LLM-RL"]
-	path = Code/RLBench _vs_VCBM/1. RLBench-Baseline/Awesome-Credit-Assignment-in-LLM-RL
-	url = https://github.com/xxzcc/Awesome-Credit-Assignment-in-LLM-RL.git
