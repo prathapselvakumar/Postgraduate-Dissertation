@@ -9,16 +9,22 @@ This should succeed if the NCCL installation is healthy.
 """
 
 import os
+import socket
 
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
 
 
+def _find_free_port() -> int:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1]
+
+
 def run(rank: int, world_size: int) -> None:
     print(f"Running on rank {rank}")
     os.environ["MASTER_ADDR"] = "127.0.0.1"
-    os.environ.setdefault("MASTER_PORT", "29500")
     dist.init_process_group("nccl", rank=rank, world_size=world_size)
 
     # 1) Gather device indices on rank 0
@@ -46,5 +52,6 @@ def run(rank: int, world_size: int) -> None:
 if __name__ == "__main__":
     world_size = torch.cuda.device_count()
     print(f"Running on {world_size} GPUs")
+    os.environ.setdefault("MASTER_PORT", str(_find_free_port()))
     mp.spawn(run, args=(world_size,), nprocs=world_size, join=True)
     print("Healthcheck complete!")
