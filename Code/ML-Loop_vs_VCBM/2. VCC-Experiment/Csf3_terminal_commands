@@ -1,0 +1,26 @@
+connect_to_csf3 : ssh t83821ps@csf3.itservices.manchester.ac.uk
+
+
+Jod__ID : 18213239 
+directory : cd ~/Postgraduate-Dissertation/Code/ML-Loop_vs_VCBM/2.\ VCC-Experiment && source ~/scratch/miniconda3/etc/profile.d/conda.sh && conda activate ml-loop
+
+edit_the_slrum_file : nano scripts/submit_vcc_csf3.sbatch
+Submit_a_new_job : sbatch scripts/submit_vcc_csf3.sbatch
+check_job_status : squeue -j 18213239
+ouput.out : tail -f logs/ml_loop_18213239.out
+error.err: tail -f logs/ml_loop_18213239.err
+Error-file-check : sacct -j 18213239 --format=JobID,State,ExitCode,Elapsed
+to-get-root-cause : grep -n "Root Cause" logs/ml_loop_18213239.err
+To-Find-Finished-iterations-with-timestamp_original : ls -d --time-style=full-iso -l ~/scratch/checkpoints/csf3_7b_2gpu/checkpoint-*/ 2>/dev/null | sort -V -k9
+To-Find-Finished-iterations-with-timestamp_vcbm : ls -d --time-style=full-iso -l ~/scratch/checkpoints/csf3_7b_4gpu_vcbm/checkpoint-*/ 2>/dev/null | sort -V -k9
+
+
+
+srun_1_gpu_1_day : srun --partition=gpuA --gres=gpu:a100_80g:1 --cpus-per-task=12 --time=1-00:00:00 --pty bash
+srun_2_gpu_1_day : srun --partition=gpuA --gres=gpu:a100_80g:2 --cpus-per-task=24 --time=1-00:00:00 --pty bash
+srun_4_gpu_1_day : srun --partition=gpuA --gres=gpu:a100_80g:4 --cpus-per-task=48 --time=4-00:00:00 --pty bash
+
+nvidia-smi
+
+cancel_job : scancel 18122067
+
