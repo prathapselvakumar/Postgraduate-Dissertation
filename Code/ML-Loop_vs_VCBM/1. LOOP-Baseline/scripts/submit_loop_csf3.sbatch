@@ -118,7 +118,7 @@ poetry --version
 
 export SCRATCH_DIR="$HOME/scratch"
 
-export APPWORLD_ROOT="$SCRATCH_DIR/appworld_data"
+export APPWORLD_ROOT="$SCRATCH_DIR/appworld_data_loop"
 
 export HF_HOME="$SCRATCH_DIR/.cache/huggingface"
 export TRANSFORMERS_CACHE="$HF_HOME"
