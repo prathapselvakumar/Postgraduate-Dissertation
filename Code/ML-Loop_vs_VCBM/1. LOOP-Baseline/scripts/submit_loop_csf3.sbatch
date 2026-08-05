@@ -188,11 +188,11 @@ poetry run accelerate launch \
     llm.vllm_server.max_model_len=16384 \
     rl.inference_requires_memory_gb=30 \
     rl.learning_requires_memory_gb=45 \
-    experiment_name=csf3_7b_2gpu_vcbm \
-    rl.cloud_path=$HOME/scratch/checkpoints/csf3_7b_2gpu_vcbm \
+    experiment_name=csf3_7b_2gpu \
+    rl.cloud_path=$HOME/scratch/checkpoints/csf3_7b_2gpu \
     wandb.project=ml-loop \
     wandb.group=CSF3 \
-    wandb.run=csf3_7b_2gpu_vcbm \
+    wandb.run=csf3_7b_2gpu \
     rl.params.total_iterations=25 \
     rl.max_ckpts=25 \
     rl.params.scenarios_per_iteration=24 \

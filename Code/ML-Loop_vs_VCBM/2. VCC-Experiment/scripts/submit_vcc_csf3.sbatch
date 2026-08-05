@@ -1,14 +1,14 @@
 #!/bin/bash --login
 #
-#SBATCH --job-name=ml_loop
+#SBATCH --job-name=vcbm
 #SBATCH --partition=gpuA
 #SBATCH --gres=gpu:a100_80g:2
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=24
 #SBATCH --time=4-00:00:00
-#SBATCH --output=logs/ml_loop_%j.out
-#SBATCH --error=logs/ml_loop_%j.err
+#SBATCH --output=logs/vcbm_%j.out
+#SBATCH --error=logs/vcbm_%j.err
 
 set -euo pipefail
 

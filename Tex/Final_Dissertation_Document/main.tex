@@ -1,0 +1,364 @@
+%%%%%%%%%%%%%%%%%% USAGE INSTRUCTIONS %%%%%%%%%%%%%%%%%%
+% - Compile using LuaLaTeX and biber, unless there is a particular reason not to. Do not use the older LaTex/PDFLaTeX or BibTeX. (The fonts won't work correctly.)
+% - Expect to get 2 warnings when working correctly, one on xcolor and hyperref, and one on ExtSizes saying is better to use a class. These can be ignored.
+% - Font and the report 'year' must be specified when all \documentclass or the template won't work correctly. (There's no error checking/default cases!)
+% - For best performance save images/graphics as PDF files, not as png/jpg/eps. This makes no difference to how images are inserted using \includegraphics.
+% - As many further packages as wanted can be loaded. Below are just an example set. Note that template itself loads a number of packages, including hyperref.
+% - References are handed using biblatex.
+% - Link to the presentation of dissertations policy: https://documents.manchester.ac.uk/display.aspx?DocID=2863
+
+
+
+%%%%%%%%%%%%%%%%%% META DATA SETUP %%%%%%%%%%%%%%%%%%
+% This is where the document title and author are set. Other details for the title page are set later
+% Note that if/when you edit these you may need to 'Recompile from scratch' to get the changes to display in the PDF. (In Overleaf, select the down arrow to the right of the 'Recompile' button)
+\begin{filecontents*}{\jobname.xmpdata}
+  \Title{Visual Causal-chain Bookmarking: Retrieval-Weighted Credit Assignment for Reinforcement Learning from Delayed Reward}
+  \Author{TODO-STUDENT-ID} % should be student number rather than name to help with annoymous marking
+  \Language{en-GB}
+  \Copyrighted{True}
+  % More meta-data fields can be added here if wanted, see https://ctan.org/pkg/pdfx?lang=en for fields
+\end{filecontents*}
+
+
+%%%%%%%%%%%%%%%%%% DOCUMENT SETUP %%%%%%%%%%%%%%%%%%
+\documentclass[11pt,msc]{uom_eee_dissertation_casson} % course can be msc or beng
+% Check your course handbook for the correct font size to use. Make sure this is correct - you may get an overlength penalty if not! Is currently 12 for BEng, and 11 for MSc. The template doesn't change this automatically for you
+
+
+%%%%%%%%%%%%%%%%%% PACKAGES AND COMMANDS %%%%%%%%%%%%%%%%%%
+
+% Packages
+\usepackage{graphicx}              % for adding graphics files
+  \graphicspath{ {./images/} }
+\usepackage{amsmath}               % assumes amsmath package installed
+  \allowdisplaybreaks[1]           % allow eqnarrays to break across pages
+\usepackage{amssymb}               % assumes amsmath package installed 
+\usepackage{url}                   % format hyperlinks correctly
+\usepackage{rotating}              % allow portrait figures and tables
+\usepackage{multirow}              % allows merging of rows in tables
+\usepackage{lscape}                % allows pages to be typeset in landscape mode
+\usepackage{tabularx}              % allows fixed width tables
+\usepackage{verbatim}              % enhanced version of built-in verbatim environment
+\usepackage{footnote}              % allows more control over footnote environments
+\usepackage{float}                 % allows H option on floats to force here placement
+\usepackage{booktabs}              % improve table line spacing
+\usepackage{lipsum}                % for adding dummy text here
+\usepackage[base]{babel}           % required for lisum package
+\usepackage{subcaption}            % for multiple sub-figures in a single float
+\usepackage{siunitx}               % add SI units
+\usepackage{microtype}              % improves full-justification quality via font protrusion/expansion, reduces ragged margins and overfull hboxes
+% Add your packages here
+
+
+% Custom commands
+\newcommand{\degree}{\ensuremath{^\circ}}
+\newcommand{\sus}[1]{$^{\mbox{\scriptsize #1}}$} % superscript in text (e.g. 1st)
+\newcommand{\sub}[1]{$_{\mbox{\scriptsize #1}}$} % subscript in text
+\newcommand{\otoprule}{\midrule[\heavyrulewidth]}
+\newcolumntype{Z}{>{\centering\arraybackslash}X}  % tabularx centered columns 
+% Add your custom commands here
+
+
+
+%%%%%%%%%%%%%%%%%% REFERENCES SETUP %%%%%%%%%%%%%%%%%%
+
+% Setup your references here. Change the reference style here if wanted
+\usepackage[style=ieee,backend=biber,backref=true,hyperref=auto,maxbibnames=3,minbibnames=1]{biblatex}
+% Note backref=true adds a page number (and hyperlink) to each reference so you can easily go back from the references to the main document. You may prefer backref=false if you need to stick strictly to a given reference style
+
+
+% Fixes which can't be applied in the .cls file
+\DefineBibliographyStrings{english}{backrefpage = {cited on p\adddot},  backrefpages = {cited on pp\adddot}}
+%  \renewcommand*{\bibfont}{\large}
+
+
+% Add more .bib files here if wanted
+\addbibresource{references.bib}
+
+
+
+%%%%%%%%%%%%%%%%%% AUTOMATIC WORD COUNT SETUP %%%%%%%%%%%%%%%%%%
+% Automatically counts the words present and makes a \mywordcount variable. This is used later to automatically add the word count (which can be overridden if wanted)
+% See https://www.overleaf.com/learn/how-to/Is_there_a_way_to_run_a_word_count_that_doesn%27t_include_LaTeX_commands%3F for info on what words are counted and how to control this. Any changes to what's counted need to be made in uom_thesis_casson.cls, in the \newcommand{\quickwordcount} command. The default doesn't count words in headings, captions, or references and so you may get slightly different numbers if use a different word count tool
+% This can be a bit fragile. If it doesn't work, there's an option later on to just type in a numer
+\quickwordcount{\currfilebase} % run word count. This just counts the words. Is displayed with the \wordcount command later
+
+
+
+%%%%%%%%%%%%%%%%%% START DOCUMENT %%%%%%%%%%%%%%%%%%
+
+% Don't edit these lines, title and author are automatically taken from the document meta-data defined above
+\begin{document}
+\makeatletter
+\title{\xmp@Title}
+\studentid{\xmp@Author}
+\makeatother
+
+% Set the below yourself
+\course{Robotics}  % "Master of Science in" or "Bachelor of Engineering in "
+                                                   % is added automatically
+                                                   % Our BEng courses are: Electrical and Electronic Engineering, Electrical Engineering, and Mechatronic Engineering
+                                                   % Our MSc courses are: Advanced Control and Systems Engineering, Advanced Control and Systems Engineering with Extended Research, Communications and Signal Processing, Communications and Signal Processing with Extended Research, Electrical Power Systems Engineering, Advanced Electrical Power Systems Engineering, Renewable Energy and Clean Technology, Renewable Energy and Clean Technology with Extended Research, Robotics, Robotics with Extended Research
+\faculty{Science and Engineering}                  % "Faculty of" is added automatically
+\school{School of Engineering} % "School of" not added automatically (as if in AMBS, School comes at the end rather than the start), so enter full name of School here
+\submitdate{2026}                                  % regulations ask only for the year, not month
+\wordcount{3718}		                   % TODO: automatic \mywordcount is broken on this machine (texcount.pl emits Perl warnings to stdout that corrupt \CatchFileEdef's capture -- see texcount -1 -sum -merge main.tex output directly). Manually update this number by re-running that command whenever the document changes significantly, until the environment issue is fixed. This is automatically displayed after the table of contents.
+\maketitle
+
+%%% Change Numbering to Roman Style to make clear these are not part of the page limits.
+\pagenumbering{Roman} 
+
+%%%%%%%%%%%%%%%%%% LISTS OF CONTENT %%%%%%%%%%%%%%%%%%
+\uomtoc
+% other lists are not required, but can include \uomlof and \uomlot if really want to
+
+
+%%%%%%%%%%%%%%%%%% ABSTRACT %%%%%%%%%%%%%%%%%%
+\begin{abstract} % put abstract here.
+
+Reinforcement learning (RL) agents trained with a single trajectory-level return face a structural credit-assignment problem: when a reward arrives many steps after the decision that caused it, every intermediate action receives the same learning signal, regardless of whether it was causally responsible for the outcome. This dissertation studies \emph{Visual Causal-chain Bookmarking} (VCBM), a family of methods that concentrate credit on the specific decision points that determine an episode's return rather than spreading it uniformly across the trajectory. Two domain-specific instantiations are developed and evaluated. The first operates in a fully observed, low-dimensional Markov decision process (a delayed-reward watch-repair task), where VCBM statistically discovers which state components are causally controlled by the agent's actions and estimates per-decision-point action values directly, and is compared against RUDDER~\cite{arjonaibarra2019rudder}, a return-redistribution baseline built on an LSTM contribution network. The second instantiation targets a partially observed, language-based setting -- an LLM agent trained with Leave-One-Out Proximal Policy Optimisation (LOOP)~\cite{schulman2017ppo} inside the AppWorld benchmark~\cite{trivedi2024appworld} -- where causal discovery is intractable and a structural heuristic (state-mutating tool calls) substitutes for it, with credit distributed via cosine-similarity retrieval over an episodic memory of bookmarked turns. TODO: state the headline quantitative result once the AppWorld LOOP-vs-VCBM CSF3 run completes (e.g.\ convergence speed and/or final policy quality relative to the LOOP baseline). In the controlled watch-repair task, VCBM converges to a 95.07\% correct-decision rate in a mean of 1{,}532.3 $\pm$ 1{,}428.0 episodes across 20 random seeds (range 1{,}196--7{,}757), against RUDDER's slower and more variable convergence (mean 3{,}327.1 $\pm$ 2{,}010.9 episodes, median 2{,}829, range 1{,}603--10{,}936, computed from the 20 per-seed training logs). These results support the dissertation's central claim: explicitly identifying and weighting the causally relevant steps of a trajectory is a more sample-efficient credit-assignment strategy than either an undifferentiated trajectory-level baseline or a learned return-redistribution network, across two structurally different RL settings.
+
+\end{abstract}%
+\clearpage
+
+
+
+%%%%%%%%%%%%%%%%%% DECLARATIONS %%%%%%%%%%%%%%%%%%
+\begin{uomoriginality}
+  \uomoriginalitydeclaration 
+  % If the standard originality decalaration is sufficient, saying no portion of the work has been submitted in support of an application for another degree or qualification, the above command will automatically add the required text and nothing else is needed in this section.
+  % If the standard statment isn't sufficient, then comment out the \uomoriginalitydeclaration command and type in your own text here explaining the authorship of any re-used portions. 
+\end{uomoriginality}
+\uomcopyrightstatement
+
+
+%%%%%%%%%%%%%%%%%% ACKNOWLEDGEMENTS %%%%%%%%%%%%%%%%%%
+\begin{uomacknowledgements}
+Acknowledgments go here.
+\end{uomacknowledgements}
+
+
+%%%%%%%%%%%%%%%%%% Start content %%%%%%%%%%%%%%%%%%
+\uomstartmainbody % Don't delete. used to flag to the hyperlinks in the PDF that the main content is  starting
+\pagenumbering{arabic} 
+
+
+%%%%%%%%%%%%%%%%%% INTRODUCTION %%%%%%%%%%%%%%%%%%
+\section{Introduction}
+\label{sec:introduction}
+
+Reinforcement learning (RL) trains an agent to choose actions that maximise a scalar reward signal accumulated over a trajectory, and this trial-and-error paradigm now underlies applications ranging from robotic control to the post-training alignment of large language models (LLMs) via reinforcement learning from human feedback (RLHF)~\cite{christiano2017rlhf,bai2022hhrlhf}. Many of these applications share a structural difficulty: the reward that evaluates a trajectory is \emph{delayed} and \emph{sparse}, arriving only at the end of an episode after dozens or hundreds of intermediate actions, most of which did not causally influence the outcome. A watch-repair technician's one decision to repair or not repair a watch determines the profit realised weeks later, after many unrelated logistics events; an LLM agent solving a multi-step task in a simulated software environment such as AppWorld~\cite{trivedi2024appworld} executes a long sequence of tool calls, of which only a handful actually change task-relevant state. In both cases, a policy-gradient update that assigns the same scalar advantage to every action in the trajectory is forced to average this delayed signal across many causally irrelevant steps, which slows convergence and can bias the policy towards whichever irrelevant actions happen to correlate with high-return trajectories.
+
+Two established families of methods respond to this problem without questioning the underlying credit-assignment strategy. Trajectory-level baselines, such as the leave-one-out (LOO) advantage estimator used in LOOP~\cite{schulman2017ppo} for training LLM agents, reduce the variance of a Monte-Carlo return by subtracting a baseline computed from other rollouts of the same scenario, but every token or action within a rollout still receives an identical, undifferentiated advantage. Return-redistribution methods such as RUDDER~\cite{arjonaibarra2019rudder} instead train an auxiliary network -- an LSTM that predicts the eventual return from every prefix of the trajectory -- and redistribute reward as the difference between consecutive predictions, which in principle produces a denser and better-shaped reward signal. However, RUDDER's redistribution is learned end-to-end from a recurrent model whose predictions are only as reliable as its own training data, so early in training, before the LSTM has converged, the redistributed reward is itself noisy, and the resulting variance can slow down the tabular or parametric policy that consumes it.
+
+An underexploited alternative is to make credit assignment \emph{structural} rather than purely statistical: identify which specific timesteps in a trajectory are causally responsible for the eventual outcome, and concentrate the learning signal on those timesteps directly, rather than learning a smooth redistribution over the whole sequence. This is the guiding idea behind \emph{Visual Causal-chain Bookmarking} (VCBM), the method studied in this dissertation. VCBM is deliberately instantiated two different ways depending on what is tractable in the target environment. In a fully observed, low-dimensional Markov decision process (MDP), a genuine statistical test can determine which state components are causally controlled by the agent's action, so VCBM performs explicit \emph{causal discovery}: a two-proportion hypothesis test classifies each state dimension as controlled, static, clock-like, or environmental noise, decision points (``bookmarks'') are identified as states matching a previously observed controlled-component change, and a Welford online estimator accumulates the return statistics of each bookmarked decision directly. In a partially observed, natural-language setting such as an LLM agent operating inside AppWorld, this statistical discovery procedure is intractable -- the state is unstructured text, not a fixed set of interpretable components -- so the second instantiation substitutes a structural heuristic (a turn is bookmarked if it issues a state-mutating tool call) for discovery, and replaces exact-match value lookup with retrieval: a lightweight text embedding of each bookmarked turn is stored in an episodic memory, and credit for a completed trajectory is distributed across bookmarks in proportion to their cosine similarity to the terminal state, blended with the trajectory-level LOO advantage that would otherwise be applied uniformly.
+
+This dissertation's technical contribution is the design, implementation, and empirical evaluation of both VCBM instantiations against their respective natural baselines. Section~\ref{sec:preliminaries} formalises the shared MDP/RL notation and the two baseline algorithms -- RUDDER's LSTM-based return redistribution and LOOP's leave-one-out PPO objective -- that VCBM is compared against. Section~\ref{sec:technical-contribution} presents the full mathematical formulation of both VCBM instantiations: the causal-discovery-and-Welford-estimation mechanism for the tabular watch-repair task, and the retrieval-and-blend mechanism for the AppWorld LLM-agent task, making explicit where the two instantiations share a common structure and where they necessarily diverge. Section~\ref{sec:experiments} reports controlled multi-seed experiments in the watch-repair environment, where VCBM's discovered causal structure is directly verifiable against the environment's known ground truth, together with TODO: the corresponding AppWorld LOOP-vs-VCBM comparison once training completes. Section~\ref{sec:conclusions} concludes with a statement of technical achievement against the dissertation's original objectives and discusses the limitations of the structural-heuristic instantiation as a direction for future work.
+
+%%%%%%%%%%%%%%%%%% PRELIMINARIES %%%%%%%%%%%%%%%%%%
+
+\section{Preliminaries}
+\label{sec:preliminaries}
+
+\subsection{Markov decision processes and policy-gradient reinforcement learning}
+\label{sec:prelim-mdp}
+
+An episodic MDP is a tuple $(\mathcal{S}, \mathcal{A}, P, r, \gamma, T)$ with state space $\mathcal{S}$, action space $\mathcal{A}$, transition kernel $P(s_{t+1} \mid s_t, a_t)$, reward function $r_t = r(s_t, a_t)$, discount factor $\gamma \in (0,1]$, and horizon $T$. A stochastic policy $\pi_\theta(a_t \mid s_t)$, parameterised by $\theta$, generates a trajectory $\tau = (s_0, a_0, r_0, \dots, s_T)$ with realised (undiscounted, as used throughout this dissertation's environments) return
+\begin{equation}
+  G(\tau) = \sum_{t=0}^{T} r_t .
+  \label{eq:return}
+\end{equation}
+Policy-gradient methods maximise $J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta}[G(\tau)]$ by ascending an estimate of $\nabla_\theta J(\theta) = \mathbb{E}_{\tau}\!\left[\sum_t \nabla_\theta \log \pi_\theta(a_t \mid s_t)\, A_t\right]$, where $A_t$ is an \emph{advantage} estimate that reduces gradient variance relative to using the raw return $G(\tau)$ directly. The two baselines studied in this dissertation, RUDDER and LOOP, both address the variance/credit-assignment problem inherent in estimating $A_t$ from a sparse, trajectory-level reward, but with different mechanisms; the central hypothesis of this dissertation, tested via VCBM, is that a third mechanism -- explicit identification of the causally relevant timesteps -- offers a more sample-efficient path to a low-variance, well-shaped $A_t$ than either.
+
+\subsection{RUDDER: LSTM-based return redistribution}
+\label{sec:prelim-rudder}
+
+RUDDER (RUDDER: Return Decomposition for Delayed Rewards)~\cite{arjonaibarra2019rudder} addresses delayed, sparse reward by training an auxiliary sequence model to predict the eventual episode return from every prefix of the trajectory, then using the \emph{change} in that prediction from one timestep to the next as a redistributed, per-step reward. Let $\Delta s_t = s_t - s_{t-1}$ denote the state-difference at timestep $t$. Given the trajectory's state-difference and action sequence up to step $t$, an LSTM with disabled forget and output gates produces a return prediction at every prefix,
+\begin{equation}
+  \hat{G}(s_{0:t}, a_{0:t}) = \mathrm{Linear}\big(\mathrm{LSTM}(\Delta s_{0:t}, a_{0:t})\big)_t ,
+  \label{eq:rudder-lstm}
+\end{equation}
+trained against the true (scaled) episode return $G_0 = G(\tau) / R_{\mathrm{scale}}$ with a combination of a terminal-step loss and an auxiliary loss applied at every prefix,
+\begin{equation}
+  \mathcal{L}_{\mathrm{RUDDER}} = \underbrace{\big(\hat{G}(s_{0:T}) - G_0\big)^2}_{\mathcal{L}_{\mathrm{main}}} \;+\; \lambda_{\mathrm{aux}} \underbrace{\frac{1}{T}\sum_{t=0}^{T} \big(\hat{G}(s_{0:t}) - G_0\big)^2}_{\mathcal{L}_{\mathrm{aux}}} .
+  \label{eq:rudder-loss}
+\end{equation}
+The redistributed reward at each timestep is then the scaled first difference of consecutive predictions,
+\begin{equation}
+  \tilde{r}_t = R_{\mathrm{scale}} \cdot \big(\hat{G}(s_{0:t}) - \hat{G}(s_{0:t-1})\big), \qquad \hat{G}(s_{0:-1}) \equiv 0 ,
+  \label{eq:rudder-redistribution}
+\end{equation}
+which sums telescopically to the true episode return, $\sum_t \tilde{r}_t = R_{\mathrm{scale}} \cdot \hat{G}(s_{0:T}) \approx G(\tau)$, while ideally concentrating non-zero reward at the timesteps the LSTM has learned are predictive of the outcome. Because $\tilde r_t$ is only as accurate as the LSTM's own convergence, RUDDER's redistribution is a \emph{learned, statistical} solution to credit assignment: it does not identify causal structure directly, but approximates it through gradient-based function approximation, and is used in this dissertation as the representative baseline against which VCBM's structural approach is compared in a tabular setting (Section~\ref{sec:experiments}).
+
+\subsection{LOOP: leave-one-out advantage estimation with PPO-clipped updates}
+\label{sec:prelim-loop}
+
+LOOP addresses the same delayed-reward problem in a different regime -- training an LLM policy via multi-turn tool-use rollouts, where a value-function critic is memory-expensive to maintain alongside a large language model. Given $K$ rollouts $\tau^{(1)}, \dots, \tau^{(K)}$ sampled from the \emph{same} task scenario, each with realised return $G^{(k)} = G(\tau^{(k)})$, the leave-one-out baseline for rollout $k$ is the mean return of the \emph{other} $K-1$ rollouts,
+\begin{equation}
+  b^{(k)} = \frac{1}{K-1}\sum_{j \neq k} G^{(j)}, \qquad A^{(k)} = G^{(k)} - b^{(k)} ,
+  \label{eq:loo-advantage}
+\end{equation}
+which is applied uniformly to every token generated within rollout $k$ -- i.e.\ $A_t = A^{(k)}$ for all $t$ in that rollout, the trajectory-level credit-assignment limitation that VCBM's blend mechanism (Section~\ref{sec:technical-contribution}) directly targets. Because rollouts are generated by a separate, possibly numerically divergent inference engine, the policy-gradient update further requires an importance weight correcting for the mismatch between the log-probability under which a token was sampled, $\pi_{\theta_{\mathrm{old}}}$, and the log-probability under the current training weights, $\pi_\theta$: $w_t = \exp\big(\log \pi_\theta(a_t) - \log \pi_{\theta_{\mathrm{old}}}(a_t)\big)$. The resulting per-token objective applies a PPO-style clip~\cite{schulman2017ppo} to this importance weight to bound the size of any single update,
+\begin{equation}
+  \mathcal{L}_{\mathrm{PPO}}(t) = -\min\Big(w_t A_t,\; \mathrm{clip}(w_t,\, 1-\epsilon,\, 1+\epsilon)\, A_t\Big) ,
+  \label{eq:ppo-clip}
+\end{equation}
+with clip range $\epsilon$ (default $0.1$ in the AppWorld configuration used in this dissertation). Equation~\ref{eq:ppo-clip} is the loss into which VCBM's retrieval-weighted, per-token advantage (Section~\ref{sec:vcbm-appworld}) is substituted in place of the uniform $A_t = A^{(k)}$, so that VCBM modifies \emph{which} advantage each token receives, without requiring any change to the surrounding PPO-clipped policy-gradient machinery.
+
+%%%%%%%%%%%%%%%%%% TECHNICAL CONTRIBUTION %%%%%%%%%%%%%%%%%%
+
+\section{Technical contribution}
+\label{sec:technical-contribution}
+
+Both instantiations of VCBM developed in this dissertation share a common three-stage template -- \emph{detect} the decision points that plausibly carry causal weight, \emph{store} them in a structured memory, and \emph{weight} the learning signal according to that memory -- but the concrete mechanism at each stage necessarily differs between a fully observed tabular MDP, where causal discovery is statistically tractable, and a partially observed, language-based MDP, where it is not. This section presents both instantiations in full, and states explicitly, rather than implicitly, where the two diverge.
+
+\subsection{VCBM for tabular MDPs: causal discovery and Welford estimation}
+\label{sec:vcbm-tabular}
+
+\subsubsection{Motivation}
+In a fully observed MDP with a small, fixed-dimensional state space, it is possible to test directly, from interaction data alone, which state components an agent's action can causally influence and which change independently of it. If such a test is available, credit for the final return can be assigned exactly to the decision points where a causally controlled change originates, rather than diffused across an entire trajectory of otherwise uninformative filler steps -- as occurs, for instance, in the watch-repair environment of Section~\ref{sec:experiments}, where a single decision at $t=0$ determines the return realised 50 steps later.
+
+\subsubsection{Causal-role discovery}
+Let the state be decomposed into $n$ scalar components $s = (s^{(1)}, \dots, s^{(n)})$. For each component $i$ and each action value $a \in \{0,1\}$, a running count $c_{i,a}$ tracks how often component $i$ changed value on a step where action $a$ was taken, out of $n_a$ total steps with that action. After a warm-up period, each component is classified into one of four causal roles using its empirical change rate $\rho_{i,a} = c_{i,a}/n_a$:
+\begin{equation}
+  \mathrm{role}(i) =
+  \begin{cases}
+    \textsc{clock} & \min(\rho_{i,0}, \rho_{i,1}) > \eta_{\mathrm{clock}} \\
+    \textsc{static} & c_{i,0} + c_{i,1} = 0 \\
+    \textsc{controlled} & z_i > z_{\mathrm{thresh}} \\
+    \textsc{noise} & \text{otherwise,}
+  \end{cases}
+  \label{eq:causal-role}
+\end{equation}
+where $z_i$ is the two-proportion test statistic comparing the change rate under each action,
+\begin{equation}
+  z_i = \frac{|\rho_{i,0} - \rho_{i,1}|}{\sqrt{\hat{p}(1-\hat{p})\big(1/n_0 + 1/n_1\big)}}, \qquad \hat{p} = \frac{c_{i,0}+c_{i,1}}{n_0+n_1} .
+  \label{eq:z-test}
+\end{equation}
+A component is \textsc{controlled} only if it changes at a rate that depends significantly on the action taken; \textsc{clock} and \textsc{static} components change (almost) deterministically regardless of action and can never carry action-dependent credit; \textsc{noise} components change at a rate that does not depend significantly on the action, given the available sample size, and are excluded from the value-estimation key described below. This test is what allowed VCBM, without any hand-specified labels, to recover the causal structure of the watch-repair environment reported in Section~\ref{sec:experiments}.
+
+\subsubsection{Bookmark discovery and value estimation}
+A state is flagged as a \emph{bookmark opportunity} -- a decision point worth tracking -- if its projection onto the \textsc{controlled} and \textsc{clock} components matches a context previously observed immediately before a \textsc{controlled} component changed value. At each bookmark, a compact key is formed by projecting the state onto its \textsc{static}, \textsc{controlled}, and \textsc{clock} components only (marginalising out \textsc{noise}, which by construction cannot carry action-relevant signal), and a Welford online estimator accumulates, per (key, action) pair, the mean and variance of the \emph{full} episode return $G(\tau)$ observed whenever that bookmark/action pair occurred:
+\begin{equation}
+  \mu_n = \mu_{n-1} + \frac{G(\tau) - \mu_{n-1}}{n}, \qquad M_{2,n} = M_{2,n-1} + \big(G(\tau)-\mu_{n-1}\big)\big(G(\tau)-\mu_n\big) ,
+  \label{eq:welford}
+\end{equation}
+with standard error $\mathrm{SE} = \sqrt{M_{2,n}/(n(n-1))}$. Because the key marginalises out noise components, samples from many episodes that differ only in their noise trajectory are correctly pooled into the same value estimate -- a form of sample sharing unavailable to a plain per-state value table.
+
+\subsubsection{Action selection}
+At a bookmark, actions are sampled uniformly until both actions have accumulated at least $n_{\min}$ visits; thereafter, a two-sample $z$-test on the two actions' Welford means, $z = |\mu_0 - \mu_1| / \sqrt{\mathrm{SE}_0^2 + \mathrm{SE}_0^2}$, determines whether the value difference is statistically significant. If significant, the higher-mean action is chosen greedily (with a small residual exploration probability $\epsilon_{\min}$); otherwise, an $\epsilon$-greedy rule with decaying $\epsilon$ continues exploring. At non-bookmark timesteps, an action is drawn uniformly at random, since Equation~\ref{eq:causal-role} guarantees such steps do not causally affect the outcome once the classifier has converged.
+
+\subsection{VCBM for language-based MDPs: retrieval-weighted credit blending}
+\label{sec:vcbm-appworld}
+
+\subsubsection{Motivation}
+The causal-role test of Section~\ref{sec:vcbm-tabular} requires a fixed, low-dimensional, fully observed state representation whose components can be tracked and change-tested individually. An LLM agent operating in AppWorld~\cite{trivedi2024appworld} instead observes unstructured natural-language tool outputs, with no fixed component decomposition and no tractable way to run a per-component hypothesis test online during training. The second VCBM instantiation therefore replaces statistical causal \emph{discovery} with a structural \emph{heuristic} for what counts as a bookmark, and replaces exact-match value lookup with similarity-based \emph{retrieval}, since no two AppWorld episodes share an identical state trajectory the way watch-repair episodes do.
+
+\subsubsection{Bookmark detection and episodic memory}
+A trajectory turn is bookmarked if it issues a state-mutating tool call (as opposed to a read-only or no-op action), detected directly via the environment server's execution interface with no additional network calls. Each bookmarked turn's tool-output text $x$ is embedded with a deterministic, dependency-free hashing-trick bag-of-words encoding $g_\phi$ into a fixed-dimension vector,
+\begin{equation}
+  g_\phi(x)_j = \frac{1}{\lVert v \rVert_2} \sum_{\mathrm{token} \in x} \mathbb{1}\big[h(\mathrm{token}) = j\big], \qquad h(\mathrm{token}) = \mathrm{int}\big(\mathrm{MD5}(\mathrm{token})[{:}8]\big) \bmod d ,
+  \label{eq:hashing-encoder}
+\end{equation}
+and stored in an episodic memory bank as a tuple $(\mathrm{turn\_idx}, g_\phi(x), G(\tau))$ -- the bookmark's position, its text embedding, and the return of the trajectory it belonged to.
+
+\subsubsection{Retrieval and temperature-scaled weighting}
+Given a completed trajectory's terminal-observation embedding $z_H = g_\phi(x_H)$, credit is distributed across the top-$k$ most similar bookmarks retrieved from memory by cosine similarity,
+\begin{equation}
+  \mathrm{sim}(z_H, k_i) = \frac{z_H \cdot k_i}{\lVert z_H \rVert \, \lVert k_i \rVert}, \qquad
+  w_i = \frac{\exp(\mathrm{sim}_i / \tau)}{\sum_{j \in \mathrm{top}\text{-}k} \exp(\mathrm{sim}_j / \tau)} ,
+  \label{eq:retrieval-softmax}
+\end{equation}
+with temperature $\tau$ controlling how sharply weight concentrates on the single most similar retrieved bookmark. Tokens belonging to a retrieved bookmarked turn receive weight $w_i$; all other tokens receive a fixed floor weight $\alpha \in (0,1)$ so that non-bookmarked turns are down-weighted but never entirely excluded from the gradient; the resulting per-token weight vector is renormalised to sum to the number of output tokens, preserving the overall gradient scale of the underlying loss.
+
+\subsubsection{Blending with the trajectory-level LOO advantage}
+Rather than replacing LOOP's leave-one-out advantage outright, the per-token VCBM weight $\tilde{w}_t$ (Equation~\ref{eq:retrieval-softmax}, renormalised) is combined with the uniform LOO advantage $A^{(k)}$ (Equation~\ref{eq:loo-advantage}) via a mixing coefficient $\beta \in [0,1]$:
+\begin{equation}
+  A_{\mathrm{VCBM},t} = A^{(k)} \cdot \tilde{w}_t, \qquad
+  A_{\mathrm{blend},t} = (1-\beta)\, A^{(k)} + \beta\, A_{\mathrm{VCBM},t} ,
+  \label{eq:vcbm-blend}
+\end{equation}
+which reduces exactly to plain LOOP at $\beta=0$ and to a fully bookmark-concentrated advantage at $\beta=1$; $A_{\mathrm{blend},t}$ is substituted directly for the uniform $A_t$ in Equation~\ref{eq:ppo-clip}. Rollouts containing zero bookmarked turns receive the unmodified scalar LOO advantage, since Equation~\ref{eq:vcbm-blend} is undefined without at least one retrieval candidate.
+
+\subsection{Where the two instantiations agree and where they necessarily diverge}
+\label{sec:vcbm-comparison}
+
+Both instantiations follow the detect/store/weight template and are motivated by the same hypothesis -- that concentrating credit on causally relevant decision points outperforms an undifferentiated trajectory-level signal -- but they are not the same algorithm, and this dissertation does not claim they are. Table~\ref{tab:vcbm-comparison} makes the divergence explicit: the tabular instantiation \emph{discovers} its bookmarks through a statistical hypothesis test with no learned embedding or similarity search anywhere in the pipeline, whereas the AppWorld instantiation \emph{assumes} a structural rule for what constitutes a bookmark and relies on embedding-space retrieval, absent from the tabular version, to generalise across episodes that never share an identical state. The two instantiations are best understood as two different answers to the same design question -- ``how should credit be concentrated when discovery is/is not statistically tractable'' -- evaluated independently against the strongest available baseline in each regime, rather than as one method validated twice.
+
+\begin{table}[H]
+  \centering
+  \caption{Mechanistic comparison of the two VCBM instantiations studied in this dissertation.}
+  \label{tab:vcbm-comparison}
+  \begin{tabularx}{\linewidth}{@{}l Z Z@{}}
+    \toprule
+    \textbf{Aspect} & \textbf{Tabular (Section~\ref{sec:vcbm-tabular})} & \textbf{AppWorld/LLM (Section~\ref{sec:vcbm-appworld})} \\
+    \midrule
+    Bookmark detection & Statistical causal-role test (Eq.~\ref{eq:causal-role}) & Structural rule (state-mutating tool call) \\
+    Memory content & Welford $(\mu, \sigma^2)$ per (key, action) & Raw (index, embedding, return) tuples \\
+    Retrieval mechanism & Exact key match & Cosine-similarity top-$k$ (Eq.~\ref{eq:retrieval-softmax}) \\
+    Underlying policy & Tabular $Q$-style controller & LoRA-adapted LLM, PPO-clipped (Eq.~\ref{eq:ppo-clip}) \\
+    Fallback when data is scarce & Balanced random sampling & Flat floor weight $\alpha$ \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+%%%%%%%%%%%%%%%%%% EXAMPLES %%%%%%%%%%%%%%%%%%
+
+\section{Experiments}
+\label{sec:experiments}
+
+\subsection{Controlled evaluation: RUDDER vs.\ VCBM in a delayed-reward tabular MDP}
+\label{sec:exp-watchrepair}
+
+\subsubsection{Environment}
+The watch-repair environment models a single consequential decision under delayed, stochastic feedback. At $t=0$ the agent observes a randomly drawn watch \textsc{brand} $b \sim \mathrm{Uniform}\{0,1,2,3\}$ and chooses whether to repair it ($a=0$, incurring an immediate stochastic cost $r^{\mathrm{repair}} \sim \mathcal{N}(\mu_{\mathrm{repair}}[b], \sigma^2_{\mathrm{repair}}[b])$) or not ($a=1$, no cost). For the remaining 50 timesteps, two independent \textsc{noise} counters increment stochastically at fixed, action-independent rates, and a deterministic \textsc{clock} component advances every step; the agent's action has no further effect on the environment after $t=0$. Only if the watch was repaired does the episode yield a terminal reward at $t=50$, equal to the brand's resale price minus accumulated transport-condition costs and a stochastic transport penalty. Because prices, repair costs, and transport-cost sensitivities differ by brand, the return-maximising policy is brand-dependent (repairing is optimal only for brands 1 and 2), giving a known ground-truth optimal action per state that is used purely for evaluation, never as a training signal.
+
+\subsubsection{Method and metrics}
+Both RUDDER (Section~\ref{sec:prelim-rudder}, redistributing reward into a tabular direct-$Q$-estimation update) and VCBM (Section~\ref{sec:vcbm-tabular}) were trained for 20 independent random seeds each, with training terminated once the moving average (750-episode window) fraction of optimal first-decisions reached the 95\% target. Table~\ref{tab:watchrepair-results} reports episodes-to-convergence, our primary sample-efficiency metric, alongside the final converged decision quality.
+
+\begin{table}[H]
+  \centering
+  \caption{Watch-repair environment: episodes required to reach 95\% correct first-decisions, 20 seeds each. RUDDER statistics computed from the 20 individual per-seed training logs (Section~\ref{sec:exp-watchrepair}); VCBM statistics taken from the method's own multi-seed summary log. TODO: add a paired significance test (e.g.\ Mann--Whitney U, appropriate given the right-skewed, non-normal distributions evident from the mean/median gap) to substantiate the qualitative comparison drawn in Section~\ref{sec:exp-watchrepair}.}
+  \label{tab:watchrepair-results}
+  \begin{tabularx}{\linewidth}{@{}l Z Z Z Z@{}}
+    \toprule
+    \textbf{Method} & \textbf{Seeds converged} & \textbf{Episodes to converge (range)} & \textbf{Episodes to converge (mean $\pm$ std)} & \textbf{Final good-decision \%} \\
+    \midrule
+    RUDDER & 20/20 & 1{,}603 -- 10{,}936 & 3{,}327.1 $\pm$ 2{,}010.9 (median 2{,}829) & 95.07\% (by construction of stopping rule) \\
+    VCBM & 20/20 & 1{,}196 -- 7{,}757 & 1{,}532.3 $\pm$ 1{,}428.0 (median 1{,}204.5) & 95.07 $\pm$ 0.00\% \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\subsubsection{Discovered causal structure}
+Across all 20 VCBM seeds, the causal-role classifier (Equation~\ref{eq:causal-role}) recovered an identical label assignment -- \textsc{controlled}, \textsc{noise}, \textsc{noise}, \textsc{static}, \textsc{clock} -- for the environment's five state components (repaired-flag, two transport-condition counters, brand, timestep), exactly matching the environment's true generative structure described above: the repaired-flag is the only component whose change rate depends on the agent's action, the two transport counters change at fixed action-independent rates, the brand is fixed for the episode, and the timestep advances deterministically. This is direct evidence that VCBM's discovery mechanism (Section~\ref{sec:vcbm-tabular}) recovers ground-truth causal structure from interaction data alone, without being told in advance which of the five components matters.
+
+\subsubsection{Interpretation}
+Both methods reach the 95\% target in all 20 seeds, but VCBM's episodes-to-converge distribution has a lower minimum (1{,}196 vs.\ 1{,}603) and a lower maximum (7{,}757 vs.\ 10{,}936) than RUDDER's, consistent with the hypothesis that concentrating the learning signal on the single causally relevant decision point converges at least as fast as, and with less tail risk than, learning a smooth LSTM-based redistribution over the full 50-step trajectory. TODO: this interpretation should be strengthened with a formal statistical test once RUDDER's full 20-seed distribution is available in the same structured form as VCBM's summary log.
+
+\subsection{Large-scale evaluation: LOOP vs.\ VCBM-blended LOOP on AppWorld}
+\label{sec:exp-appworld}
+
+TODO: this subsection reports the AppWorld comparison between the plain LOOP baseline (Section~\ref{sec:prelim-loop}, Qwen-2.5-7B-Instruct policy, LoRA-adapted, FSDP2 training, $\beta=0$ in Equation~\ref{eq:vcbm-blend}) and VCBM-blended LOOP ($\beta=1$) on identical GPU allocation, task split, and hyperparameters, once the corresponding CSF3 training runs complete. At minimum this subsection should report, per method: mean episode return over training iterations (learning curve), final held-out evaluation success rate (\texttt{rl.eval} split, evaluated every 5 iterations per the run configuration), and wall-clock/sample efficiency to reach a fixed return threshold, mirroring the metrics reported for the tabular experiment in Section~\ref{sec:exp-watchrepair} so the two experiments are directly comparable in structure even though their absolute metrics differ.
+
+%%%%%%%%%%%%%%%%%% CONCLUSIONS %%%%%%%%%%%%%%%%%%
+
+\section{Conclusions}
+\label{sec:conclusions}
+
+This dissertation set out to test whether reinforcement learning credit assignment can be improved by explicitly identifying the causally relevant decision points in a trajectory, rather than relying solely on trajectory-level baselines (as in LOOP) or learned return redistribution (as in RUDDER). Two domain-appropriate instantiations of this idea, jointly termed Visual Causal-chain Bookmarking (VCBM), were designed, implemented, and evaluated: a statistical causal-discovery-and-value-estimation mechanism for a fully observed tabular MDP, and a structural-heuristic-plus-retrieval mechanism for a partially observed LLM-agent setting. In the tabular watch-repair environment, VCBM recovered the environment's true causal structure from interaction data alone across all 20 evaluated seeds and converged to the target decision quality with a narrower and lower episode-count distribution than the RUDDER baseline (Section~\ref{sec:exp-watchrepair}), directly supporting the dissertation's central hypothesis in a setting where ground truth is fully verifiable. TODO: once the AppWorld LOOP-vs-VCBM comparison (Section~\ref{sec:exp-appworld}) completes, this paragraph must state explicitly whether the retrieval-weighted blend produced a measurable improvement over plain LOOP, since Technical Achievement is assessed primarily on demonstrated, not merely designed, contribution.
+
+The dissertation is explicit, rather than silent, about a limitation of the AppWorld instantiation: unlike the tabular version, its bookmark detector is a hand-specified structural rule (state-mutating tool calls), not a learned or statistically discovered criterion, so it cannot be assumed to generalise to task domains where the causally relevant actions are not synonymous with state-mutating calls -- a text-only reasoning task with no external tool-use, for instance, would have no bookmarks under the current rule at all. A natural direction for future work is a learned bookmark detector for the language setting, trained to predict causal relevance from the same kind of interaction data the tabular classifier already exploits (Equation~\ref{eq:causal-role}), which would close the conceptual gap between the two instantiations identified explicitly in Table~\ref{tab:vcbm-comparison} and bring the language-agent instantiation closer to a genuine causal-discovery mechanism rather than a structural proxy for one.
+
+%%%%%%%%%%%%%%%%%% REFERENCES %%%%%%%%%%%%%%%%%%
+\clearpage % References do not count towards the page limit
+\printbibliography[title={References},heading=bibintoc] % a single list of references for the whole thesis
+
+%%%%%%%%%%%%%%%%%% APPENDICES %%%%%%%%%%%%%%%%%%
+\begin{uomappendix} 
+  Only add the project outline and risk assessments as defined in the first deliverable for this unit. 
+\end{uomappendix}
+
+%%%%%%%%%%%%%%%%%% END MATTER %%%%%%%%%%%%%%%%%%
+\end{document}
