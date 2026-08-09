@@ -1,5 +1,10 @@
 # CSF3 Terminal Commands — LOOP-Baseline
 
+Placeholders used below:
+
+- `<RUN_NAME>` — checkpoint/wandb run identifier, e.g. `csf3_7b_2gpu` (25-iter) or `csf3_7b_2gpu_90iter` (90-iter)
+- `<JOB_ID>` — SLURM job ID for the current submission
+
 ## Connect
 
 ```bash
@@ -7,8 +12,6 @@ ssh t83821ps@csf3.itservices.manchester.ac.uk
 ```
 
 > Password: **not stored here** — keep credentials out of tracked files.
-
-Job ID: `18270970`
 
 ```bash
 cd ~/Postgraduate-Dissertation/Code/ML-Loop_vs_VCBM/1.\ LOOP-Baseline && source ~/scratch/miniconda3/etc/profile.d/conda.sh && conda activate ml-loop
@@ -31,13 +34,13 @@ sbatch scripts/submit_loop_csf3.sbatch
 Check job status:
 
 ```bash
-squeue -j 18270970
+squeue -j <JOB_ID>
 ```
 
 Cancel job:
 
 ```bash
-scancel 18270970
+scancel <JOB_ID>
 ```
 
 ## Logs
@@ -45,49 +48,59 @@ scancel 18270970
 stdout:
 
 ```bash
-tail -f logs/ml_loop_18270970.out
+tail -f logs/ml_loop_<JOB_ID>.out
 ```
 
 stderr:
 
 ```bash
-tail -f logs/ml_loop_18270970.err
+tail -f logs/ml_loop_<JOB_ID>.err
 ```
 
 Exit code / elapsed time:
 
 ```bash
-sacct -j 18270970 --format=JobID,State,ExitCode,Elapsed
+sacct -j <JOB_ID> --format=JobID,State,ExitCode,Elapsed
 ```
 
 Root cause of a failure:
 
 ```bash
-grep -n "Root Cause" logs/ml_loop_18270970.err
+grep -n "Root Cause" logs/ml_loop_<JOB_ID>.err
 ```
 
 ## Checkpoints
 
-Trainer state across all checkpoints (LOOP baseline):
+Finished iterations with timestamps:
 
 ```bash
-for d in ~/scratch/checkpoints/csf3_7b_2gpu/checkpoint-*/; do echo "=== $d ==="; python -c "
+ls -d --time-style=full-iso -l ~/scratch/checkpoints/<RUN_NAME>/checkpoint-*/ 2>/dev/null | sort -V -k9
+```
+
+Trainer state across all checkpoints:
+
+```bash
+for d in ~/scratch/checkpoints/<RUN_NAME>/checkpoint-*/; do echo "=== $d ==="; python -c "
 import torch
 d = torch.load('$d/trainer_state.pt', map_location='cpu', weights_only=False)
 print(d)
 "; done
 ```
 
-Finished iterations with timestamps — LOOP baseline:
+Per-iteration wall-clock runtime, from checkpoint mtimes:
 
 ```bash
-ls -d --time-style=full-iso -l ~/scratch/checkpoints/csf3_7b_2gpu/checkpoint-*/ 2>/dev/null | sort -V -k9
-```
-
-Finished iterations with timestamps — VCBM:
-
-```bash
-ls -d --time-style=full-iso -l ~/scratch/checkpoints/csf3_7b_2gpu_vcbm/checkpoint-*/ 2>/dev/null | sort -V -k9
+python3 -c "
+import glob, os, datetime
+dirs = sorted(glob.glob(os.path.expanduser('~/scratch/checkpoints/<RUN_NAME>/checkpoint-*/')), key=lambda p: int(p.rstrip('/').split('-')[-1]))
+times = [(int(p.rstrip('/').split('-')[-1]), datetime.datetime.fromtimestamp(os.path.getmtime(p))) for p in dirs]
+print(f\"{'iter':>5} {'timestamp':>20} {'duration':>12}\")
+prev = None
+for i, t in times:
+    dur = '' if prev is None else str(t - prev)
+    print(f'{i:>5} {t.strftime(\"%Y-%m-%d %H:%M:%S\"):>20} {dur:>12}')
+    prev = t
+"
 ```
 
 ## Convergence / training curve
@@ -95,13 +108,13 @@ ls -d --time-style=full-iso -l ~/scratch/checkpoints/csf3_7b_2gpu_vcbm/checkpoin
 Check `wandb-summary.json` for loss/KL/return (if present):
 
 ```bash
-find ~/scratch -iname "wandb-summary.json" -path "*csf3_7b_2gpu*" 2>/dev/null -exec sh -c 'echo "=== {} ==="; cat {}; echo' \;
+find ~/scratch -iname "wandb-summary.json" -path "*<RUN_NAME>*" 2>/dev/null -exec sh -c 'echo "=== {} ==="; cat {}; echo' \;
 ```
 
 Grep raw metrics from the offline `.out` log:
 
 ```bash
-grep -oE "avg_loss[^,}]*|kl_estimate[^,}]*|grad_norm[^,}]*|mean_return[^,}]*|episode_return[^,}]*" logs/ml_loop_18270970.out | tail -200
+grep -oE "avg_loss[^,}]*|kl_estimate[^,}]*|grad_norm[^,}]*|mean_return[^,}]*|episode_return[^,}]*" logs/ml_loop_<JOB_ID>.out | tail -200
 ```
 
 Sync an offline wandb run to the cloud:
@@ -120,7 +133,7 @@ from wandb.proto import wandb_internal_pb2 as pb
 import glob, json
 
 base = '/mnt/iusers01/fse-ugpgt01/mace01/t83821ps/Postgraduate-Dissertation/Code/ML-Loop_vs_VCBM/1. LOOP-Baseline/_wandb_logs/wandb'
-run_dirs = sorted(glob.glob(f'{base}/offline-run-*-csf3_7b_2gpu'))
+run_dirs = sorted(glob.glob(f'{base}/offline-run-*-<RUN_NAME>'))
 
 def is_trainer(run_dir):
     dbg = f'{run_dir}/logs/debug.log'
@@ -170,21 +183,13 @@ for r in all_iter_rows:
 "
 ```
 
-Per-iteration wall-clock runtime, from checkpoint mtimes:
+## Active runs
 
-```bash
-python3 -c "
-import glob, os, datetime
-dirs = sorted(glob.glob(os.path.expanduser('~/scratch/checkpoints/csf3_7b_2gpu/checkpoint-*/')), key=lambda p: int(p.rstrip('/').split('-')[-1]))
-times = [(int(p.rstrip('/').split('-')[-1]), datetime.datetime.fromtimestamp(os.path.getmtime(p))) for p in dirs]
-print(f\"{'iter':>5} {'timestamp':>20} {'duration':>12}\")
-prev = None
-for i, t in times:
-    dur = '' if prev is None else str(t - prev)
-    print(f'{i:>5} {t.strftime(\"%Y-%m-%d %H:%M:%S\"):>20} {dur:>12}')
-    prev = t
-"
-```
+| Run | `<RUN_NAME>` | `<JOB_ID>` | Notes |
+| --- | --- | --- | --- |
+| LOOP baseline, 25-iter | `csf3_7b_2gpu` | `18336749` | original run |
+| VCBM | `csf3_7b_2gpu_vcbm` | — | |
+| LOOP baseline, 90-iter / half-rollout | `csf3_7b_2gpu_90iter` | — | `scenarios_per_iteration` halved 24→12 (48 rollouts/iteration instead of 96), `total_iterations=90`, `max_ckpts=90` |
 
 ## Interactive sessions
 

@@ -6,7 +6,7 @@
 ssh t83821ps@csf3.itservices.manchester.ac.uk
 ```
 
-Job ID: `18287709`
+Job ID: `18336747`
 
 ```bash
 cd ~/Postgraduate-Dissertation/Code/ML-Loop_vs_VCBM/2.\ VCC-Experiment && source ~/scratch/miniconda3/etc/profile.d/conda.sh && conda activate ml-loop
@@ -29,13 +29,13 @@ sbatch scripts/submit_vcc_csf3.sbatch
 Check job status:
 
 ```bash
-squeue -j 18287709
+squeue -j 18336747
 ```
 
 Cancel job:
 
 ```bash
-scancel 18287709
+scancel 18336747
 ```
 
 ## Logs
@@ -43,25 +43,25 @@ scancel 18287709
 stdout:
 
 ```bash
-tail -f logs/vcbm_18287709.out
+tail -f logs/vcbm_18336747.out
 ```
 
 stderr:
 
 ```bash
-tail -f logs/vcbm_18287709.err
+tail -f logs/vcbm_18336747.err
 ```
 
 Exit code / elapsed time:
 
 ```bash
-sacct -j 18287709 --format=JobID,State,ExitCode,Elapsed
+sacct -j 18336747 --format=JobID,State,ExitCode,Elapsed
 ```
 
 Root cause of a failure:
 
 ```bash
-grep -n "Root Cause" logs/vcbm_18287709.err
+grep -n "Root Cause" logs/vcbm_18336747.err
 ```
 
 ## Checkpoints
@@ -75,7 +75,7 @@ ls -d --time-style=full-iso -l ~/scratch/checkpoints/csf3_7b_2gpu/checkpoint-*/ 
 Finished iterations with timestamps — VCBM:
 
 ```bash
-ls -d --time-style=full-iso -l ~/scratch/checkpoints/csf3_7b_2gpu_vcbm/checkpoint-*/ 2>/dev/null | sort -V -k9
+ls -d --time-style=full-iso -l ~/scratch/checkpoints/csf3_7b_2gpu_90iter_vcbm/checkpoint-*/ 2>/dev/null | sort -V -k9 
 ```
 
 ## Convergence / training curve (VCBM)
@@ -89,7 +89,7 @@ from wandb.proto import wandb_internal_pb2 as pb
 import glob, json
 
 base = '/mnt/iusers01/fse-ugpgt01/mace01/t83821ps/Postgraduate-Dissertation/Code/ML-Loop_vs_VCBM/2. VCC-Experiment/_wandb_logs/wandb'
-run_dirs = sorted(glob.glob(f'{base}/offline-run-*-csf3_7b_2gpu_vcbm'))
+run_dirs = sorted(glob.glob(f'{base}/offline-run-*-csf3_7b_2gpu_90iter_vcbm'))
 
 def is_trainer(run_dir):
     dbg = f'{run_dir}/logs/debug.log'
