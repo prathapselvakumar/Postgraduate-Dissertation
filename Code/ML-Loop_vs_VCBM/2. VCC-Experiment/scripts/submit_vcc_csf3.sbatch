@@ -3,7 +3,6 @@
 #SBATCH --job-name=vcbm
 #SBATCH --partition=gpuA
 #SBATCH --gres=gpu:a100_80g:2
-#SBATCH --exclusive
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=24
