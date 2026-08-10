@@ -70,7 +70,7 @@
       \field{volume}{32}
       \field{year}{2019}
     \endentry
-    \entry{schulman2017ppo}{article}{}{}
+    \entry{schulman2017ppo}{misc}{}{}
       \name{author}{5}{}{%
         {{hash=3e09bd2a25d237ebdaed560a07c0451e}{%
            family={Schulman},
@@ -110,9 +110,12 @@
       \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
-      \field{journaltitle}{arXiv preprint arXiv:1707.06347}
+      \field{eprinttype}{arxiv}
       \field{title}{Proximal Policy Optimization Algorithms}
       \field{year}{2017}
+      \verb{eprint}
+      \verb 1707.06347
+      \endverb
     \endentry
     \entry{trivedi2024appworld}{article}{}{}
       \name{author}{9}{}{%
@@ -230,7 +233,7 @@
       \field{volume}{30}
       \field{year}{2017}
     \endentry
-    \entry{bai2022hhrlhf}{article}{}{}
+    \entry{bai2022hhrlhf}{misc}{}{}
       \name{author}{31}{}{%
         {{hash=9bf1729ae263e793ab902ed7fe6678da}{%
            family={Bai},
@@ -400,10 +403,13 @@
       \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
-      \field{journaltitle}{arXiv preprint arXiv:2204.05862}
+      \field{eprinttype}{arxiv}
       \field{note}{Anthropic RLHF paper. TODO: confirm this (rather than the Constitutional AI paper, Bai et al. 2022b, arXiv:2212.08073) is the intended ``Claude RLHF paper'' citation -- both are Anthropic RLHF-adjacent but describe different methods.}
       \field{title}{Training a Helpful and Harmless Assistant with Reinforcement Learning from Human Feedback}
       \field{year}{2022}
+      \verb{eprint}
+      \verb 2204.05862
+      \endverb
     \endentry
   \enddatalist
 \endrefsection

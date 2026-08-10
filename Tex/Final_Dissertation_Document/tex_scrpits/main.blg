@@ -1,15 +1,15 @@
 [0] Config.pm:328> INFO - This is Biber 2.21
-[1] Config.pm:331> INFO - Logfile is 'tex_scrpits/main.blg'
-[56] biber-MSWIN64:342> INFO - === 
-[71] Biber.pm:421> INFO - Reading 'tex_scrpits/main.bcf'
-[143] Biber.pm:1002> INFO - Found 5 citekeys in bib section 0
-[153] Biber.pm:4487> INFO - Processing section 0
-[163] Biber.pm:4678> INFO - Looking for bibtex file 'references.bib' for section 0
-[167] bibtex.pm:1713> INFO - LaTeX decoding ...
-[239] bibtex.pm:1519> INFO - Found BibTeX data source 'references.bib'
-[433] UCollate.pm:68> INFO - Overriding locale 'en-US' defaults 'normalization = NFD' with 'normalization = prenormalized'
-[433] UCollate.pm:68> INFO - Overriding locale 'en-US' defaults 'variable = shifted' with 'variable = non-ignorable'
-[433] Biber.pm:4307> INFO - Sorting list 'none/global//global/global/global' of type 'entry' with template 'none' and locale 'en-US'
-[433] Biber.pm:4313> INFO - No sort tailoring available for locale 'en-US'
-[437] bbl.pm:676> INFO - Writing 'tex_scrpits/main.bbl' with encoding 'UTF-8'
-[447] bbl.pm:779> INFO - Output to tex_scrpits/main.bbl
+[0] Config.pm:331> INFO - Logfile is 'tex_scrpits\main.blg'
+[41] biber-MSWIN64:342> INFO - === 
+[52] Biber.pm:421> INFO - Reading 'tex_scrpits\main.bcf'
+[109] Biber.pm:1002> INFO - Found 5 citekeys in bib section 0
+[119] Biber.pm:4487> INFO - Processing section 0
+[128] Biber.pm:4678> INFO - Looking for bibtex file 'references.bib' for section 0
+[131] bibtex.pm:1713> INFO - LaTeX decoding ...
+[156] bibtex.pm:1519> INFO - Found BibTeX data source 'references.bib'
+[217] UCollate.pm:68> INFO - Overriding locale 'en-GB' defaults 'normalization = NFD' with 'normalization = prenormalized'
+[218] UCollate.pm:68> INFO - Overriding locale 'en-GB' defaults 'variable = shifted' with 'variable = non-ignorable'
+[218] Biber.pm:4307> INFO - Sorting list 'none/global//global/global/global' of type 'entry' with template 'none' and locale 'en-GB'
+[218] Biber.pm:4313> INFO - No sort tailoring available for locale 'en-GB'
+[221] bbl.pm:676> INFO - Writing 'tex_scrpits\main.bbl' with encoding 'UTF-8'
+[229] bbl.pm:779> INFO - Output to tex_scrpits\main.bbl
