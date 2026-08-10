@@ -66,11 +66,7 @@ grep -n "Root Cause" logs/vcbm_18336747.err
 
 ## Checkpoints
 
-Finished iterations with timestamps — LOOP baseline:
 
-```bash
-ls -d --time-style=full-iso -l ~/scratch/checkpoints/csf3_7b_2gpu/checkpoint-*/ 2>/dev/null | sort -V -k9
-```
 
 Finished iterations with timestamps — VCBM:
 
@@ -144,7 +140,7 @@ Per-iteration wall-clock runtime, from checkpoint mtimes:
 ```bash
 python3 -c "
 import glob, os, datetime
-dirs = sorted(glob.glob(os.path.expanduser('~/scratch/checkpoints/csf3_7b_2gpu_vcbm/checkpoint-*/')), key=lambda p: int(p.rstrip('/').split('-')[-1]))
+dirs = sorted(glob.glob(os.path.expanduser('~/scratch/checkpoints/csf3_7b_2gpu_90iter_vcbm/checkpoint-*/')), key=lambda p: int(p.rstrip('/').split('-')[-1]))
 times = [(int(p.rstrip('/').split('-')[-1]), datetime.datetime.fromtimestamp(os.path.getmtime(p))) for p in dirs]
 print(f\"{'iter':>5} {'timestamp':>20} {'duration':>12}\")
 prev = None
