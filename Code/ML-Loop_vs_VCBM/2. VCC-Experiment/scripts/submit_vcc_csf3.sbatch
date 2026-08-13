@@ -193,8 +193,8 @@ poetry run accelerate launch \
     wandb.project=ml-loop \
     wandb.group=CSF3 \
     wandb.run=csf3_7b_2gpu_90iter_vcbm_r2 \
-    rl.params.total_iterations=90 \
-    rl.max_ckpts=90 \
+    rl.params.total_iterations=200 \
+    rl.max_ckpts=200 \
     rl.params.scenarios_per_iteration=12 \
     rl.params.rollouts_per_scenario=4 \
     rl.params.minibatch_size=32 \
