@@ -151,6 +151,34 @@ for i, t in times:
 "
 ```
 
+## Push W&B logs to the cloud
+
+Training runs on compute nodes with `WANDB_MODE=offline` (no internet on compute nodes), so runs are
+written locally under `_wandb_logs/wandb/offline-run-*` and never uploaded automatically. To push them,
+run `wandb sync` **from the login node** (has internet) — never from within the sbatch job.
+
+One-time: put a real `WANDB_API_KEY` in `ml-loop.env` (repo root) or `~/.secrets/ml-loop.env` — no
+editor needed, this can be written from your local machine and synced up, or appended remotely in one line:
+
+```bash
+echo 'WANDB_API_KEY=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' >> ~/.secrets/ml-loop.env
+```
+
+Sync everything:
+
+```bash
+bash scripts/sync_wandb_logs.sh
+```
+
+Sync only one experiment's runs (substring match against the run-dir name):
+
+```bash
+bash scripts/sync_wandb_logs.sh csf3_7b_2gpu_90iter_vcbm_r2
+```
+
+This can be re-run any time (already-synced runs are skipped/no-op), including while the job is still
+running, to push progress incrementally without waiting for the job to finish.
+
 ## Interactive sessions
 
 1 GPU, 1 day:
