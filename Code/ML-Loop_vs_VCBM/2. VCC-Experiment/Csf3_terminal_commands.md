@@ -161,10 +161,11 @@ One-time: put a real `WANDB_API_KEY` in `ml-loop.env` (repo root) or `~/.secrets
 editor needed, this can be written from your local machine and synced up, or appended remotely in one line:
 
 ```bash
-echo 'WANDB_API_KEY=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' >> ~/.secrets/ml-loop.env
+echo 'WANDB_API_KEY=your_real_key_here' >> ~/.secrets/ml-loop.env
 ```
 
-Sync everything:
+Sync everything (run from this experiment's directory, e.g.
+`cd ~/Postgraduate-Dissertation/Code/ML-Loop_vs_VCBM/2.\ VCC-Experiment`):
 
 ```bash
 bash scripts/sync_wandb_logs.sh

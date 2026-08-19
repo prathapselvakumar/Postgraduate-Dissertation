@@ -11,7 +11,7 @@ Placeholders used below:
 ssh t83821ps@csf3.itservices.manchester.ac.uk
 ```
 
-> Password: **Prathapsk!080902** — keep credentials out of tracked files.
+> Password: use your CSF3 login password (keep credentials out of tracked files — consider SSH keys instead).
 
 ```bash
 cd ~/Postgraduate-Dissertation/Code/ML-Loop_vs_VCBM/1.\ LOOP-Baseline && source ~/scratch/miniconda3/etc/profile.d/conda.sh && conda activate ml-loop
@@ -117,12 +117,34 @@ Grep raw metrics from the offline `.out` log:
 grep -oE "avg_loss[^,}]*|kl_estimate[^,}]*|grad_norm[^,}]*|mean_return[^,}]*|episode_return[^,}]*" logs/ml_loop_18631089.out | tail -200
 ```
 
-Sync an offline wandb run to the cloud:
+## Push W&B logs to the cloud
+
+Training runs on compute nodes with `WANDB_MODE=offline` (no internet on compute nodes), so runs are
+written locally under `_wandb_logs/wandb/offline-run-*` and never uploaded automatically. To push them,
+run `wandb sync` **from the login node** (has internet) — never from within the sbatch job.
+
+One-time: put a real `WANDB_API_KEY` in `ml-loop.env` (repo root) or `~/.secrets/ml-loop.env` — no
+editor needed, this can be written from your local machine and synced up, or appended remotely in one line:
 
 ```bash
-find ~/scratch -maxdepth 6 -type d -iname "offline-run-*" 2>/dev/null
-# then: wandb sync <path-to-run-dir-from-above>
+echo 'WANDB_API_KEY=your_real_key_here' >> ~/.secrets/ml-loop.env
 ```
+
+Sync everything (run from this experiment's directory, e.g.
+`cd ~/Postgraduate-Dissertation/Code/ML-Loop_vs_VCBM/1.\ LOOP-Baseline`):
+
+```bash
+bash scripts/sync_wandb_logs.sh
+```
+
+Sync only one experiment's runs (substring match against the run-dir name):
+
+```bash
+bash scripts/sync_wandb_logs.sh csf3_7b_2gpu_90iter
+```
+
+This can be re-run any time (already-synced runs are skipped/no-op), including while the job is still
+running, to push progress incrementally without waiting for the job to finish.
 
 `avg_return` / `adv_filtered_fraction` trend across all trainer wandb runs:
 
