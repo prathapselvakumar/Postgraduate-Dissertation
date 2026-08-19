@@ -181,12 +181,14 @@
 %% and any AppWorld/Qwen/vLLM/FSDP systems papers actually used.
 %% =====================================================================
 
-@Misc{TODO_causal_discovery_1,
-  note = {TODO: add a causal discovery / structure learning reference (e.g. Pearl's causality framework or a causal RL survey) to support Section~\ref{sec:vcbm-tabular}'s framing.},
+@Misc{cca2021,
+  title = {[TITLE/VENUE/YEAR NEEDED] Mesnard et al., Counterfactual Credit Assignment: develops Counterfactual Credit Assignment, using structural causal models to estimate counterfactual returns in RL.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey cca2021. Verify full bibliographic details (author list, venue, year, DOI) before submission. Fills the causal-discovery/causal-RL related-work slot formerly held by TODO_causal_discovery_1.},
 }
 
-@Misc{TODO_causal_rl_survey,
-  note = {TODO: add a survey on causal reinforcement learning.},
+@Misc{cocoa2023,
+  title = {[TITLE/VENUE/YEAR NEEDED] COCOA: introduces counterfactual contribution analysis for long-term credit assignment via model-based counterfactual queries.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey cocoa2023. Verify full bibliographic details (author list, venue, year, DOI) before submission. Fills the causal-RL-survey related-work slot formerly held by TODO_causal_rl_survey.},
 }
 
 @Misc{TODO_retrieval_augmented,
@@ -197,8 +199,14 @@
   note = {TODO: add an episodic-memory-in-RL reference (e.g. Neural Episodic Control, Blundell et al. 2016) as related work for Section~\ref{sec:vcbm-appworld}.},
 }
 
-@Misc{TODO_llm_agents_survey,
-  note = {TODO: add an LLM agents / tool-use survey reference for Introduction context.},
+@Misc{agentic_rl_survey2026,
+  title = {[TITLE/VENUE/YEAR NEEDED] Agentic RL survey: emphasizes credit assignment as a central bottleneck in scaling LLM agents.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey agentic_rl_survey2026. Verify full bibliographic details (author list, venue, year, DOI) before submission. Fills the LLM-agents-survey related-work slot formerly held by TODO_llm_agents_survey.},
+}
+
+@Misc{agentic_ca_survey2026,
+  title = {[TITLE/VENUE/YEAR NEEDED] Agentic credit-assignment survey: organizes many credit-assignment methods for LLM agents by granularity and methodology, emphasizing long-horizon challenges.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey agentic_ca_survey2026. Verify full bibliographic details (author list, venue, year, DOI) before submission.},
 }
 
 @Misc{TODO_react_prompting,
@@ -229,12 +237,14 @@
   note = {TODO: add a reward hacking / specification gaming reference (e.g. Skalse et al. 2022) as motivation for why undifferentiated trajectory-level credit can bias policies toward spurious correlations (Introduction, paragraph 1).},
 }
 
-@Misc{TODO_credit_assignment_survey,
-  note = {TODO: add a dedicated temporal credit assignment survey (e.g. Pignatelli et al. 2023, "A Survey of Temporal Credit Assignment in Deep Reinforcement Learning") to anchor the Introduction/Related Work discussion.},
+@Misc{pignatelli2023survey,
+  title = {[TITLE/VENUE/YEAR NEEDED] Pignatelli et al., A Survey of Temporal Credit Assignment in Deep Reinforcement Learning: surveys temporal credit assignment in deep RL, providing a unifying formalism and evaluation protocols.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey pignatelli2023survey. Verify full bibliographic details (author list, venue, year, DOI) before submission. Fills the related-work slot formerly held by TODO_credit_assignment_survey.},
 }
 
-@Misc{TODO_hindsight_credit,
-  note = {TODO: consider Hindsight Credit Assignment (Harutyunyan et al. 2019) as a closely related counterfactual credit-assignment baseline worth discussing alongside RUDDER.},
+@Misc{hca2019,
+  title = {[TITLE/VENUE/YEAR NEEDED] Harutyunyan et al., Hindsight Credit Assignment: assigns credit to past actions using a hindsight distribution conditioned on outcomes.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey hca2019. Verify full bibliographic details (author list, venue, year, DOI) before submission. Fills the related-work slot formerly held by TODO_hindsight_credit.},
 }
 
 @Misc{TODO_temporal_value_transport,
@@ -269,42 +279,220 @@
   note = {TODO: if discussing the CSF3 HPC training infrastructure in an implementation/appendix section, add a Slurm workload manager reference (Yoo et al. 2003).},
 }
 
-@Misc{TODO_additional_1,
-  note = {TODO: additional reference slot -- fill based on final Related Work scope.},
+@Misc{lvgts2021,
+  title = {[TITLE/VENUE/YEAR NEEDED] LVGTS: uses model-based temporal shortcuts to propagate gradients from future rewards back to distant past decisions.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey lvgts2021. Verify full bibliographic details (author list, venue, year, DOI) before submission. Fills the related-work slot formerly held by TODO_additional_1.},
 }
 
-@Misc{TODO_additional_2,
-  note = {TODO: additional reference slot -- fill based on final Related Work scope.},
+@Misc{randomized_return_decomp2022,
+  title = {[TITLE/VENUE/YEAR NEEDED] Ren et al., Randomized Return Decomposition: learns long-term reward redistribution via randomized return decomposition for delayed rewards.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey randomized_return_decomp2022. Verify full bibliographic details (author list, venue, year, DOI) before submission. Fills the related-work slot formerly held by TODO_additional_2.},
 }
 
-@Misc{TODO_additional_3,
-  note = {TODO: additional reference slot -- fill based on final Related Work scope.},
+@Misc{phi_ppo2026,
+  title = {[TITLE/VENUE/YEAR NEEDED] Counterfactual Shapley Credit Assignment ($\phi$-PPO): uses Shapley values to redistribute rewards across sparse, stochastic trajectories.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey phi_ppo2026. Verify full bibliographic details (author list, venue, year, DOI) before submission. Fills the related-work slot formerly held by TODO_additional_3.},
 }
 
-@Misc{TODO_additional_4,
-  note = {TODO: additional reference slot -- fill based on final Related Work scope.},
+@Misc{multi_turn_grpo2025,
+  title = {[TITLE/VENUE/YEAR NEEDED] Multi-turn GRPO variants: provide a framework for turn-level credit assignment in multi-step reasoning.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey multi_turn_grpo2025. Verify full bibliographic details (author list, venue, year, DOI) before submission. Fills the related-work slot formerly held by TODO_additional_4.},
 }
 
-@Misc{TODO_additional_5,
-  note = {TODO: additional reference slot -- fill based on final Related Work scope.},
+@Misc{memoryr22026,
+  title = {[TITLE/VENUE/YEAR NEEDED] Memory-R2: addresses fair credit assignment for long-horizon memory-augmented LLM agents via LoGo-GRPO and curriculum training.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey memoryr22026. Verify full bibliographic details (author list, venue, year, DOI) before submission. Fills the related-work slot formerly held by TODO_additional_5. NOTE: LoGo-GRPO's memory-augmented credit mechanism is architecturally close to VCBM's episodic-memory blend (Section~\ref{sec:vcbm-appworld}); the Related Work section discusses this proximity honestly rather than overclaiming distinctiveness.},
 }
 
-@Misc{TODO_additional_6,
-  note = {TODO: additional reference slot -- fill based on final Related Work scope.},
+@Misc{generally_curious_agent2025,
+  title = {[TITLE/VENUE/YEAR NEEDED] Tajwar et al., a generally curious agent: uses curiosity signals to guide long-horizon exploration and credit assignment.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey generally_curious_agent2025. Verify full bibliographic details (author list, venue, year, DOI) before submission. Fills the related-work slot formerly held by TODO_additional_6.},
 }
 
-@Misc{TODO_additional_7,
-  note = {TODO: additional reference slot -- fill based on final Related Work scope.},
+@Misc{long_horizon_agents_survey2025,
+  title = {[TITLE/VENUE/YEAR NEEDED] A survey on long-horizon agents: reviews hierarchical and credit-assignment techniques for manipulation and LLM tasks.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey long_horizon_agents_survey2025. Verify full bibliographic details (author list, venue, year, DOI) before submission. Fills the related-work slot formerly held by TODO_additional_7.},
 }
 
-@Misc{TODO_additional_8,
-  note = {TODO: additional reference slot -- fill based on final Related Work scope.},
+@Misc{g2po2026,
+  title = {[TITLE/VENUE/YEAR NEEDED] G2PO: builds a global state-transition graph to improve credit allocation in long-horizon benchmarks like WebShop, ALFWorld, and AppWorld.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey g2po2026. Verify full bibliographic details (author list, venue, year, DOI) before submission. Fills the related-work slot formerly held by TODO_additional_8.},
 }
 
-@Misc{TODO_additional_9,
-  note = {TODO: additional reference slot -- fill based on final Related Work scope.},
+@Misc{spa_rl2025,
+  title = {[TITLE/VENUE/YEAR NEEDED] SPA-RL: reinforces LLM agents via stepwise progress attribution, densifying rewards along reasoning paths.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey spa_rl2025. Verify full bibliographic details (author list, venue, year, DOI) before submission. Fills the related-work slot formerly held by TODO_additional_9.},
 }
 
-@Misc{TODO_additional_10,
-  note = {TODO: additional reference slot -- fill based on final Related Work scope.},
+@Misc{trace2026,
+  title = {[TITLE/VENUE/YEAR NEEDED] TRACE: performs turn-level reward assignment via credit estimation for long-horizon agents.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey trace2026. Verify full bibliographic details (author list, venue, year, DOI) before submission. Fills the related-work slot formerly held by TODO_additional_10.},
+}
+
+%% =====================================================================
+%% REMAINING literature_reference_notes_ieee.xlsx ENTRIES (added in full,
+%% per author request "add all the possible reference"). None of these are
+%% yet \cite{}'d anywhere in main.tex -- they are added here as INCOMPLETE
+%% stubs (title/venue/year/author/DOI all unverified) so the full 48-row
+%% source list is represented in the bibliography. Each MUST be verified
+%% and cited appropriately (or deliberately left uncited and removed)
+%% before submission. A few of these keys describe the SAME underlying
+%% paper as an existing verified entry above under a DIFFERENT key
+%% (flagged individually below) -- do not double-cite the same source
+%% under two keys in main.tex.
+%% =====================================================================
+
+@Misc{appworld2024,
+  title = {[TITLE/VENUE/YEAR NEEDED] AppWorld benchmark description (four-factor experimental validation protocol reference).},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey appworld2024. LIKELY DUPLICATE of the existing verified entry trivedi2024appworld (same AppWorld paper) -- verify and consolidate to one key before citing either in main.tex.},
+}
+
+@Misc{auzina2026intrinsic,
+  title = {[TITLE/VENUE/YEAR NEEDED] Auzina et al., $\Delta$Belief-RL: uses changes in the model's own belief as intrinsic rewards for long-horizon credit assignment in LLM interaction tasks.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey auzina2026intrinsic. Verify full bibliographic details (author list, venue, year, DOI) before submission.},
+}
+
+@Misc{agentopsd2026,
+  title = {[TITLE/VENUE/YEAR NEEDED] AgentOPSD: applies recursive self-distillation to agentic RL, shaping process-level credit signals.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey agentopsd2026. Verify full bibliographic details (author list, venue, year, DOI) before submission.},
+}
+
+@Misc{efca2026,
+  title = {[TITLE/VENUE/YEAR NEEDED] EFCA: refines step-level returns by combining short-term and medium-term environment-grounded feedback signals in long-horizon agentic RL.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey efca2026. Verify full bibliographic details (author list, venue, year, DOI) before submission.},
+}
+
+@Misc{entropy_modulated_pg2025,
+  title = {[TITLE/VENUE/YEAR NEEDED] Entropy-modulated policy gradients: addresses uncertainty and credit assignment in long-horizon LLM agents.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey entropy_modulated_pg2025. Verify full bibliographic details (author list, venue, year, DOI) before submission.},
+}
+
+@Misc{eval_as_action2026,
+  title = {[TITLE/VENUE/YEAR NEEDED] Evaluate-as-Action: treats self-evaluation as an action that yields process rewards for retrieval-augmented agents.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey eval_as_action2026. Verify full bibliographic details (author list, venue, year, DOI) before submission.},
+}
+
+@Misc{has_turnrd2026,
+  title = {[TITLE/VENUE/YEAR NEEDED] Hybrid Advantage Shaping with TurnRD: combines GRPO with learned per-turn credit for multi-turn LLM agents.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey has_turnrd2026. Verify full bibliographic details (author list, venue, year, DOI) before submission.},
+}
+
+@Misc{hca_llm_agents2026,
+  title = {[TITLE/VENUE/YEAR NEEDED] Hindsight Credit Assignment for Long-Horizon LLM Agents: adapts HCA ideas to LLM-based environments.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey hca_llm_agents2026. Verify full bibliographic details (author list, venue, year, DOI) before submission. Closely related to the already-cited hca2019 (Harutyunyan et al.) -- distinguish clearly if both are cited.},
+}
+
+@Misc{hcapo2026,
+  title = {[TITLE/VENUE/YEAR NEEDED] HCAPO: integrates hindsight credit assignment into LLM agents, refining sparse trajectory-level rewards into step-level advantages.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey hcapo2026. Verify full bibliographic details (author list, venue, year, DOI) before submission.},
+}
+
+@Misc{her2017,
+  title = {[TITLE/VENUE/YEAR NEEDED] Hindsight Experience Replay: relabels goals retrospectively but does not address per-timestep credit redistribution within a fixed-goal trajectory.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey her2017. Verify full bibliographic details (author list, venue, year, DOI) before submission. Likely refers to Andrychowicz et al., NeurIPS 2017.},
+}
+
+@Misc{hierarchical_step_aug_rl2026,
+  title = {[TITLE/VENUE/YEAR NEEDED] Hierarchical RL with augmented step-level transitions: improves credit assignment for LLM agents.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey hierarchical_step_aug_rl2026. Verify full bibliographic details (author list, venue, year, DOI) before submission.},
+}
+
+@Misc{hiper2026,
+  title = {[TITLE/VENUE/YEAR NEEDED] HiPER: introduces hierarchical RL with explicit credit assignment between high-level planners and low-level executors in LLM agents.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey hiper2026. Verify full bibliographic details (author list, venue, year, DOI) before submission.},
+}
+
+@Misc{hiql2024,
+  title = {[TITLE/VENUE/YEAR NEEDED] HIQL: uses hierarchical Q-learning for long-horizon control, implicitly addressing credit across temporal abstractions.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey hiql2024. Verify full bibliographic details (author list, venue, year, DOI) before submission.},
+}
+
+@Misc{horizon_empirical_study2026,
+  title = {[TITLE/VENUE/YEAR NEEDED] Empirical study of horizon length effects on training large language models for long-horizon tasks.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey horizon_empirical_study2026. Verify full bibliographic details (author list, venue, year, DOI) before submission.},
+}
+
+@Misc{ica2026,
+  title = {[TITLE/VENUE/YEAR NEEDED] ICA: introduces information-aware credit assignment for visually grounded long-horizon web agents using visual snapshots and posterior analysis.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey ica2026. Verify full bibliographic details (author list, venue, year, DOI) before submission.},
+}
+
+@Misc{infopo2026,
+  title = {[TITLE/VENUE/YEAR NEEDED] InfoPO: optimizes user-centric agents by assigning credit based on information gain along interaction trajectories.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey infopo2026. Verify full bibliographic details (author list, venue, year, DOI) before submission.},
+}
+
+@Misc{loop2025,
+  title = {[TITLE/VENUE/YEAR NEEDED] LOOP (Apple) and GRPO (DeepSeek): compute a single leave-one-out or group-normalised advantage per trajectory, applied uniformly across all output tokens.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey loop2025. LIKELY DUPLICATE/RELATED to the existing verified entry schulman2017ppo covering the PPO mechanism LOOP builds on -- LOOP itself is a distinct, more recent Apple paper and should be verified and cited separately if referenced by name.},
+}
+
+@Misc{memory_aug_credit2026,
+  title = {[TITLE/VENUE/YEAR NEEDED] Memory-augmented credit assignment frameworks: handle shared memory states in long-horizon LLM agents.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey memory_aug_credit2026. Verify full bibliographic details (author list, venue, year, DOI) before submission. Closely related to the already-cited memoryr22026 (Memory-R2) -- distinguish clearly if both are cited.},
+}
+
+@Misc{nec2017,
+  title = {[TITLE/VENUE/YEAR NEEDED] Neural Episodic Control: uses episodic key-value memory for Q-value estimation in standard MDPs.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey nec2017. Verify full bibliographic details (author list, venue, year, DOI) before submission. Directly fills the previously-unmatched TODO_episodic_memory_rl slot (Blundell et al., Neural Episodic Control, 2016/2017 -- verify exact year).},
+}
+
+@Misc{opensearch_vl2026,
+  title = {[TITLE/VENUE/YEAR NEEDED] OpenSearch-VL: discusses process reward and credit-assignment techniques in multimodal search agents.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey opensearch_vl2026. Verify full bibliographic details (author list, venue, year, DOI) before submission.},
+}
+
+@Misc{pacr2025,
+  title = {[TITLE/VENUE/YEAR NEEDED] PACR: proposes progressively ascending confidence rewards as verifier-free intrinsic signals for LLM reasoning trajectories.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey pacr2025. Verify full bibliographic details (author list, venue, year, DOI) before submission.},
+}
+
+@Misc{ppo2017,
+  title = {[TITLE/VENUE/YEAR NEEDED] Proximal Policy Optimization Algorithms (clipped surrogate objective underlying the LOOP loss, Equation~\ref{eq:ppo-clip}).},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey ppo2017. DUPLICATE of the existing verified entry schulman2017ppo (same paper, same authors, same year) -- use schulman2017ppo in main.tex and do not cite this key; retained here only for completeness of the source spreadsheet.},
+}
+
+@Misc{praise2026,
+  title = {[TITLE/VENUE/YEAR NEEDED] PRAISE: reuses search prefixes and derives step-level process rewards from prefix gains to improve credit assignment in agentic search.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey praise2026. Verify full bibliographic details (author list, venue, year, DOI) before submission.},
+}
+
+@Misc{proRL2025,
+  title = {[TITLE/VENUE/YEAR NEEDED] ProRL: expands RL training horizons for LLM reasoning, examining how prolonged interaction affects credit assignment.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey proRL2025. Verify full bibliographic details (author list, venue, year, DOI) before submission.},
+}
+
+@Misc{process_reward_agents2026,
+  title = {[TITLE/VENUE/YEAR NEEDED] Process Reward Agents: design intermediate rewards to steer knowledge-intensive LLM agents, improving process-level credit.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey process_reward_agents2026. Verify full bibliographic details (author list, venue, year, DOI) before submission.},
+}
+
+@Misc{qwen2024,
+  title = {[TITLE/VENUE/YEAR NEEDED] Qwen2.5 technical report (base model family used for the AppWorld/LOOP/VCBM policy).},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey qwen2024. Directly fills the previously-unmatched TODO_qwen25 slot. Verify full bibliographic details (author list, venue, year, DOI) before submission.},
+}
+
+@Misc{ragen2025,
+  title = {[TITLE/VENUE/YEAR NEEDED] Ragen: studies self-evolution in LLM agents via multi-turn RL and analyzes credit assignment across reasoning turns.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey ragen2025. Verify full bibliographic details (author list, venue, year, DOI) before submission.},
+}
+
+@Misc{rebel2026,
+  title = {[TITLE/VENUE/YEAR NEEDED] ReBel: proposes consistency-guided credit assignment that rewards belief-consistent trajectories in partially observable long-horizon environments.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey rebel2026. Verify full bibliographic details (author list, venue, year, DOI) before submission.},
+}
+
+@Misc{rudder2019,
+  title = {[TITLE/VENUE/YEAR NEEDED] RUDDER: trains an auxiliary network to predict the return-to-go at every timestep, using the consecutive difference in predictions as a credit signal.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey rudder2019. DUPLICATE of the existing verified entry arjonaibarra2019rudder (same paper) -- use arjonaibarra2019rudder in main.tex and do not cite this key; retained here only for completeness of the source spreadsheet.},
+}
+
+@Misc{subsearch2026,
+  title = {[TITLE/VENUE/YEAR NEEDED] SubSearch: introduces intermediate rewards for unsupervised guided reasoning in retrieval-augmented agents.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey subsearch2026. Verify full bibliographic details (author list, venue, year, DOI) before submission.},
+}
+
+@Misc{vllm2023,
+  title = {[TITLE/VENUE/YEAR NEEDED] vLLM: PagedAttention-based inference server used for rollout generation; FSDP2 used for distributed gradient computation.},
+  note  = {FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey vllm2023. Directly fills the previously-unmatched TODO_vllm slot (Kwon et al., PagedAttention, SOSP 2023 -- verify). A separate TODO_fsdp slot above still needs its own FSDP2 systems reference. Verify full bibliographic details before submission.},
 }

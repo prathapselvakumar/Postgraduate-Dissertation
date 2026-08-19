@@ -2384,7 +2384,22 @@
     <bcf:citekey order="7" intorder="1">arjonaibarra2019rudder</bcf:citekey>
     <bcf:citekey order="8" intorder="1">arjonaibarra2019rudder</bcf:citekey>
     <bcf:citekey order="9" intorder="1">schulman2017ppo</bcf:citekey>
-    <bcf:citekey order="10" intorder="1">trivedi2024appworld</bcf:citekey>
+    <bcf:citekey order="10" intorder="1">hca2019</bcf:citekey>
+    <bcf:citekey order="11" intorder="1">cca2021</bcf:citekey>
+    <bcf:citekey order="12" intorder="1">cocoa2023</bcf:citekey>
+    <bcf:citekey order="13" intorder="1">randomized_return_decomp2022</bcf:citekey>
+    <bcf:citekey order="14" intorder="1">phi_ppo2026</bcf:citekey>
+    <bcf:citekey order="15" intorder="1">multi_turn_grpo2025</bcf:citekey>
+    <bcf:citekey order="16" intorder="1">g2po2026</bcf:citekey>
+    <bcf:citekey order="17" intorder="1">spa_rl2025</bcf:citekey>
+    <bcf:citekey order="18" intorder="1">memoryr22026</bcf:citekey>
+    <bcf:citekey order="19" intorder="1">generally_curious_agent2025</bcf:citekey>
+    <bcf:citekey order="20" intorder="1">pignatelli2023survey</bcf:citekey>
+    <bcf:citekey order="21" intorder="1">agentic_rl_survey2026</bcf:citekey>
+    <bcf:citekey order="22" intorder="1">agentic_ca_survey2026</bcf:citekey>
+    <bcf:citekey order="23" intorder="1">long_horizon_agents_survey2025</bcf:citekey>
+    <bcf:citekey order="24" intorder="1">trivedi2024appworld</bcf:citekey>
+    <bcf:citekey order="25" intorder="1">memoryr22026</bcf:citekey>
   </bcf:section>
   <!-- SORTING TEMPLATES -->
   <bcf:sortingtemplate name="none">

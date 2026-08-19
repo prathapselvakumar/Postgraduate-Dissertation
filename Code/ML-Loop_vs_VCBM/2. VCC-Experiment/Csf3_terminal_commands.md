@@ -6,7 +6,7 @@
 ssh t83821ps@csf3.itservices.manchester.ac.uk
 ```
 
-Job ID: `18495863`
+Job ID: `18668337`
 
 ```bash
 cd ~/Postgraduate-Dissertation/Code/ML-Loop_vs_VCBM/2.\ VCC-Experiment && source ~/scratch/miniconda3/etc/profile.d/conda.sh && conda activate ml-loop
@@ -29,13 +29,13 @@ sbatch scripts/submit_vcc_csf3.sbatch
 Check job status:
 
 ```bash
-squeue -j 18495863
+squeue -j 18668337
 ```
 
 Cancel job:
 
 ```bash
-scancel 18495863
+scancel 18668337
 ```
 
 ## Logs
@@ -43,25 +43,25 @@ scancel 18495863
 stdout:
 
 ```bash
-tail -f logs/vcbm_18495863.out
+tail -f logs/vcbm_18668337.out
 ```
 
 stderr:
 
 ```bash
-tail -f logs/vcbm_18495863.err
+tail -f logs/vcbm_18668337.err
 ```
 
 Exit code / elapsed time:
 
 ```bash
-sacct -j 18495863 --format=JobID,State,ExitCode,Elapsed
+sacct -j 18668337 --format=JobID,State,ExitCode,Elapsed
 ```
 
 Root cause of a failure:
 
 ```bash
-grep -n "Root Cause" logs/vcbm_18495863.err
+grep -n "Root Cause" logs/vcbm_18668337.err
 ```
 
 ## Checkpoints

@@ -411,6 +411,104 @@
       \verb 2204.05862
       \endverb
     \endentry
+    \entry{hca2019}{misc}{}{}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labeltitlesource}{title}
+      \field{note}{FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey hca2019. Verify full bibliographic details (author list, venue, year, DOI) before submission. Fills the related-work slot formerly held by TODO_hindsight_credit.}
+      \field{title}{[TITLE/VENUE/YEAR NEEDED] Harutyunyan et al., Hindsight Credit Assignment: assigns credit to past actions using a hindsight distribution conditioned on outcomes.}
+    \endentry
+    \entry{cca2021}{misc}{}{}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labeltitlesource}{title}
+      \field{note}{FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey cca2021. Verify full bibliographic details (author list, venue, year, DOI) before submission. Fills the causal-discovery/causal-RL related-work slot formerly held by TODO_causal_discovery_1.}
+      \field{title}{[TITLE/VENUE/YEAR NEEDED] Mesnard et al., Counterfactual Credit Assignment: develops Counterfactual Credit Assignment, using structural causal models to estimate counterfactual returns in RL.}
+    \endentry
+    \entry{cocoa2023}{misc}{}{}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labeltitlesource}{title}
+      \field{note}{FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey cocoa2023. Verify full bibliographic details (author list, venue, year, DOI) before submission. Fills the causal-RL-survey related-work slot formerly held by TODO_causal_rl_survey.}
+      \field{title}{[TITLE/VENUE/YEAR NEEDED] COCOA: introduces counterfactual contribution analysis for long-term credit assignment via model-based counterfactual queries.}
+    \endentry
+    \entry{randomized_return_decomp2022}{misc}{}{}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labeltitlesource}{title}
+      \field{note}{FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey randomized_return_decomp2022. Verify full bibliographic details (author list, venue, year, DOI) before submission. Fills the related-work slot formerly held by TODO_additional_2.}
+      \field{title}{[TITLE/VENUE/YEAR NEEDED] Ren et al., Randomized Return Decomposition: learns long-term reward redistribution via randomized return decomposition for delayed rewards.}
+    \endentry
+    \entry{phi_ppo2026}{misc}{}{}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labeltitlesource}{title}
+      \field{note}{FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey phi_ppo2026. Verify full bibliographic details (author list, venue, year, DOI) before submission. Fills the related-work slot formerly held by TODO_additional_3.}
+      \field{title}{[TITLE/VENUE/YEAR NEEDED] Counterfactual Shapley Credit Assignment ($\phi$-PPO): uses Shapley values to redistribute rewards across sparse, stochastic trajectories.}
+    \endentry
+    \entry{multi_turn_grpo2025}{misc}{}{}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labeltitlesource}{title}
+      \field{note}{FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey multi_turn_grpo2025. Verify full bibliographic details (author list, venue, year, DOI) before submission. Fills the related-work slot formerly held by TODO_additional_4.}
+      \field{title}{[TITLE/VENUE/YEAR NEEDED] Multi-turn GRPO variants: provide a framework for turn-level credit assignment in multi-step reasoning.}
+    \endentry
+    \entry{g2po2026}{misc}{}{}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labeltitlesource}{title}
+      \field{note}{FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey g2po2026. Verify full bibliographic details (author list, venue, year, DOI) before submission. Fills the related-work slot formerly held by TODO_additional_8.}
+      \field{title}{[TITLE/VENUE/YEAR NEEDED] G2PO: builds a global state-transition graph to improve credit allocation in long-horizon benchmarks like WebShop, ALFWorld, and AppWorld.}
+    \endentry
+    \entry{spa_rl2025}{misc}{}{}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labeltitlesource}{title}
+      \field{note}{FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey spa_rl2025. Verify full bibliographic details (author list, venue, year, DOI) before submission. Fills the related-work slot formerly held by TODO_additional_9.}
+      \field{title}{[TITLE/VENUE/YEAR NEEDED] SPA-RL: reinforces LLM agents via stepwise progress attribution, densifying rewards along reasoning paths.}
+    \endentry
+    \entry{memoryr22026}{misc}{}{}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labeltitlesource}{title}
+      \field{note}{FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey memoryr22026. Verify full bibliographic details (author list, venue, year, DOI) before submission. Fills the related-work slot formerly held by TODO_additional_5. NOTE: LoGo-GRPO's memory-augmented credit mechanism is architecturally close to VCBM's episodic-memory blend (Section~\ref{sec:vcbm-appworld}); the Related Work section discusses this proximity honestly rather than overclaiming distinctiveness.}
+      \field{title}{[TITLE/VENUE/YEAR NEEDED] Memory-R2: addresses fair credit assignment for long-horizon memory-augmented LLM agents via LoGo-GRPO and curriculum training.}
+    \endentry
+    \entry{generally_curious_agent2025}{misc}{}{}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labeltitlesource}{title}
+      \field{note}{FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey generally_curious_agent2025. Verify full bibliographic details (author list, venue, year, DOI) before submission. Fills the related-work slot formerly held by TODO_additional_6.}
+      \field{title}{[TITLE/VENUE/YEAR NEEDED] Tajwar et al., a generally curious agent: uses curiosity signals to guide long-horizon exploration and credit assignment.}
+    \endentry
+    \entry{pignatelli2023survey}{misc}{}{}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labeltitlesource}{title}
+      \field{note}{FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey pignatelli2023survey. Verify full bibliographic details (author list, venue, year, DOI) before submission. Fills the related-work slot formerly held by TODO_credit_assignment_survey.}
+      \field{title}{[TITLE/VENUE/YEAR NEEDED] Pignatelli et al., A Survey of Temporal Credit Assignment in Deep Reinforcement Learning: surveys temporal credit assignment in deep RL, providing a unifying formalism and evaluation protocols.}
+    \endentry
+    \entry{agentic_rl_survey2026}{misc}{}{}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labeltitlesource}{title}
+      \field{note}{FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey agentic_rl_survey2026. Verify full bibliographic details (author list, venue, year, DOI) before submission. Fills the LLM-agents-survey related-work slot formerly held by TODO_llm_agents_survey.}
+      \field{title}{[TITLE/VENUE/YEAR NEEDED] Agentic RL survey: emphasizes credit assignment as a central bottleneck in scaling LLM agents.}
+    \endentry
+    \entry{agentic_ca_survey2026}{misc}{}{}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labeltitlesource}{title}
+      \field{note}{FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey agentic_ca_survey2026. Verify full bibliographic details (author list, venue, year, DOI) before submission.}
+      \field{title}{[TITLE/VENUE/YEAR NEEDED] Agentic credit-assignment survey: organizes many credit-assignment methods for LLM agents by granularity and methodology, emphasizing long-horizon challenges.}
+    \endentry
+    \entry{long_horizon_agents_survey2025}{misc}{}{}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labeltitlesource}{title}
+      \field{note}{FULL CITATION INCOMPLETE -- source: literature_reference_notes_ieee.xlsx BibKey long_horizon_agents_survey2025. Verify full bibliographic details (author list, venue, year, DOI) before submission. Fills the related-work slot formerly held by TODO_additional_7.}
+      \field{title}{[TITLE/VENUE/YEAR NEEDED] A survey on long-horizon agents: reviews hierarchical and credit-assignment techniques for manipulation and LLM tasks.}
+    \endentry
   \enddatalist
 \endrefsection
 \endinput

@@ -3,7 +3,7 @@
 Placeholders used below:
 
 - `csf3_7b_2gpu_90iter` — checkpoint/wandb run identifier, e.g. `csf3_7b_2gpu` (25-iter) or `csf3_7b_2gpu_90iter` (90-iter)
-- `18423252` — SLURM job ID for the current submission
+- `18631089` — SLURM job ID for the current submission
 
 ## Connect
 
@@ -34,13 +34,13 @@ sbatch scripts/submit_loop_csf3.sbatch
 Check job status:
 
 ```bash
-squeue -j 18423252
+squeue -j 18631089
 ```
 
 Cancel job:
 
 ```bash
-scancel 18423252
+scancel 18631089
 ```
 
 ## Logs
@@ -48,25 +48,25 @@ scancel 18423252
 stdout:
 
 ```bash
-tail -f logs/ml_loop_18423252.out
+tail -f logs/ml_loop_18631089.out
 ```
 
 stderr:
 
 ```bash
-tail -f logs/ml_loop_18423252.err
+tail -f logs/ml_loop_18631089.err
 ```
 
 Exit code / elapsed time:
 
 ```bash
-sacct -j 18423252 --format=JobID,State,ExitCode,Elapsed
+sacct -j 18631089 --format=JobID,State,ExitCode,Elapsed
 ```
 
 Root cause of a failure:
 
 ```bash
-grep -n "Root Cause" logs/ml_loop_18423252.err
+grep -n "Root Cause" logs/ml_loop_18631089.err
 ```
 
 ## Checkpoints
@@ -114,7 +114,7 @@ find ~/scratch -iname "wandb-summary.json" -path "*csf3_7b_2gpu_90iter*" 2>/dev/
 Grep raw metrics from the offline `.out` log:
 
 ```bash
-grep -oE "avg_loss[^,}]*|kl_estimate[^,}]*|grad_norm[^,}]*|mean_return[^,}]*|episode_return[^,}]*" logs/ml_loop_18423252.out | tail -200
+grep -oE "avg_loss[^,}]*|kl_estimate[^,}]*|grad_norm[^,}]*|mean_return[^,}]*|episode_return[^,}]*" logs/ml_loop_18631089.out | tail -200
 ```
 
 Sync an offline wandb run to the cloud:
@@ -185,9 +185,9 @@ for r in all_iter_rows:
 
 ## Active runs
 
-| Run | `csf3_7b_2gpu_90iter` | `18423252` | Notes |
+| Run | `csf3_7b_2gpu_90iter` | `18631089` | Notes |
 | --- | --- | --- | --- |
-| LOOP baseline, 25-iter | `csf3_7b_2gpu` | `18423252` | original run |
+| LOOP baseline, 25-iter | `csf3_7b_2gpu` | `18631089` | original run |
 | VCBM | `csf3_7b_2gpu_vcbm` | — | |
 | LOOP baseline, 90-iter / half-rollout | `csf3_7b_2gpu_90iter` | — | `scenarios_per_iteration` halved 24→12 (48 rollouts/iteration instead of 96), `total_iterations=90`, `max_ckpts=90` |
 
