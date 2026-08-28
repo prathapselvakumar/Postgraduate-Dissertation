@@ -25,4 +25,4 @@ wandb/
 **/~/
 **/IsaacLab/
 **/.env
-
+.claude/
