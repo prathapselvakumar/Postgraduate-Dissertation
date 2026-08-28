@@ -9,6 +9,12 @@ Output Logs/
 *.fls
 *.fdb_latexmk
 *.synctex.gz
+*.bbl
+*.bcf
+*.blg
+*.xmpdata
+*.run.xml
+pdfa.xmpi
 .DS_Store
 .agents/
 Code/Output Logs/

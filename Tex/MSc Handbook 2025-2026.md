@@ -10,7 +10,7 @@ Department of Electrical and Electronic Engineering School of Engineering
 
 Version: 26.06.08 
 
-# **1 General information** 
+# **1 General information** 357A Great Western Street
 
 ## **1.1 Opening comments** 
 
