@@ -49,6 +49,7 @@
 \usepackage{siunitx}               % add SI units
 \usepackage{microtype}              % improves full-justification quality via font protrusion/expansion, reduces ragged margins and overfull hboxes
 \usepackage{enumitem}               % compact list spacing for the page-limited main body
+\usepackage{pdfpages}                % for attaching the project outline and risk assessment PDFs in the appendix
 % Add your packages here
 
 
@@ -162,7 +163,9 @@
 
 %%%%%%%%%%%%%%%%%% ACKNOWLEDGEMENTS %%%%%%%%%%%%%%%%%%
 \begin{uomacknowledgements}
-  Acknowledgments go here.
+  I would like to thank my parents, Geetha Selvakumar and Selvakumar Palaniyandi, for their constant support throughout this degree. Thanks also to my younger brother, Saran Selvakumar, who has never once let me take myself too seriously, and to my friends who pushed me to keep going when this project got difficult.
+
+  I am grateful to my supervisor, Dr.~Pawel, for their guidance throughout this project. A special thanks to Swetha Parthasarathy, a good friend, whose encouragement pushed me to go further than I thought I could.
 \end{uomacknowledgements}
 
 
@@ -505,9 +508,23 @@ Two limitations remain. The AppWorld bookmark detector is a hand-specified struc
 \printbibliography[title={References},heading=bibintoc] % a single list of references for the whole thesis
 
 %%%%%%%%%%%%%%%%%% APPENDICES %%%%%%%%%%%%%%%%%%
-\begin{uomappendix}
-  Only add the project outline and risk assessments as defined in the first deliverable for this unit.
-\end{uomappendix}
+% Not using the uomappendix environment directly: it forces a standalone
+% "Appendices" heading page via \section*{Appendices} before any content,
+% which left a near-empty page above since \includepdf always starts its
+% content on its own fresh page. Replicating uomappendix's bookmark/ToC
+% setup without the printed heading lets the first appendix PDF page follow
+% the references immediately.
+\clearpage
+\bookmarksetupnext{level=-1}
+\phantomsection\addcontentsline{toc}{section}{Appendices}
+\addtocontents{toc}{\protect\setcounter{tocdepth}{2}}
+\begin{appendices}
+
+\includepdf[pages=-,addtotoc={1,section,1,Project Outline,app:project-outline}]{appendix_pdfs/Project_Outline.pdf}
+
+\includepdf[pages=-,addtotoc={1,section,1,Risk Assessment,app:risk-assessment}]{appendix_pdfs/Risk_Assessment_WFH.pdf}
+
+\end{appendices}
 
 %%%%%%%%%%%%%%%%%% END MATTER %%%%%%%%%%%%%%%%%%
 \end{document}
