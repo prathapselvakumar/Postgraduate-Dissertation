@@ -157,7 +157,6 @@ def test_degenerate_few_bookmarks():
 
 def test_execute_with_bookmark():
     print("Running test_execute_with_bookmark...")
-    os.environ["APPWORLD_ROOT"] = "/home/prathapsk/Postgraduate-Dissertation/Code/ml-loop/data/appworld_root"
     print("Initializing AppWorldInterface...")
     world = AppWorldInterface(stdout_to_devnull=True)
     try:

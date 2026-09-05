@@ -25,7 +25,13 @@ appworld-env/bin/pip install click==8.2.1 appworld
 appworld-env/bin/appworld install
 export APPWORLD_ROOT=<path>
 appworld-env/bin/appworld download data --root $APPWORLD_ROOT
+python scripts/patch_appworld_server.py                 # required: adds the /execute_with_bookmark route VCBM needs
 ```
+
+`scripts/patch_appworld_server.py` patches `appworld/serve/environment.py` inside `appworld-env` to add the
+`/execute_with_bookmark` endpoint (see VCBM section below) — the vanilla `appworld` PyPI package doesn't have
+it. Idempotent (checks for `execute_with_bookmark` in the file before patching); takes an optional path
+argument (or `APPWORLD_ENV_SERVER_PATH` env var) if `appworld-env` isn't a sibling of the repo root.
 
 `APPWORLD_ROOT` must be set in the environment for almost everything (training, eval, tests) to run.
 Locally in this repo, `data/appworld_root` and `data/appworld_splits` hold the AppWorld data/task-split files.
@@ -75,6 +81,31 @@ python scripts/torch_dist_healthcheck.py            # NCCL/distributed sanity ch
 There is no dedicated `tests/` suite in this fork currently — `scripts/test_vcc_pipeline.py` is a
 standalone script (not pytest-discovered) exercising `compute_credit_weights`, `compute_turn_token_spans`,
 and a live `AppWorldInterface` execute-with-bookmark round trip; it requires `APPWORLD_ROOT` to be set.
+
+## Running locally (non-CSF3)
+
+This repo's own directory may sit on a filesystem without symlink support (e.g. exFAT, common on
+external/portable drives) — `poetry install` / `python -m venv` fail outright there (venv needs a
+`lib64 -> lib` symlink). If `df -T <repo path>` shows a Linux-native fs (ext4/btrfs/xfs) with enough
+free space (30GB+), just follow the Environment setup commands above directly. Otherwise:
+
+1. Create an ext4-formatted loopback image file on the non-Linux drive and mount it via `udisksctl`
+   (no root needed for typical desktop sessions): see `scripts/mount_local_linuxfs.sh` for the pattern
+   used here — a large `truncate`d file, `mkfs.ext4 -E root_owner=<uid>:<gid>`, `udisksctl loop-setup` +
+   `udisksctl mount`. Run this script once per session/reboot (loop mounts don't persist automatically).
+2. Point `poetry config virtualenvs.path`, `poetry config cache-dir`, `pip config set global.cache-dir`,
+   `appworld-env`, and `APPWORLD_ROOT` at that mounted filesystem instead of the repo/home dir — Poetry's
+   default cache (`~/.cache/pypoetry`) and pip's default cache can easily exceed a small root partition
+   while downloading torch/vLLM/CUDA wheels (this fails as `OSError: [Errno 28] No space left on device`
+   mid-install, corrupting the venv; clear the cache dir and re-run `poetry install` after fixing it).
+3. Run `python scripts/patch_appworld_server.py` (see above) — required for the VCBM
+   `execute_with_bookmark` smoke test to pass.
+4. GPU driver: if `nvidia-smi` isn't found, install via `sudo ubuntu-drivers install` (or the specific
+   `nvidia-driver-*` package `ubuntu-drivers devices` recommends) and reboot.
+
+Local hardware is typically far below CSF3's 8xA100 80GB — a single consumer/laptop GPU (12-24GB VRAM)
+can only realistically run the README's [single-GPU debug config](README.md#debugging) (Qwen 2.5 7B, tiny
+iteration counts), not the 32B production runs.
 
 ## Running on CSF3 (University of Manchester HPC)
 

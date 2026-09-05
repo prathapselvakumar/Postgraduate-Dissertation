@@ -26,3 +26,13 @@ wandb/
 **/IsaacLab/
 **/.env
 .claude/
+<<<<<<< HEAD
+ml-loop-linuxfs.img
+=======
+
+# Research paper draft (excluded for now)
+Documentation/Research Paper/
+>>>>>>> 5bf9dfb (Update dissertation)
+
+# Research paper draft (excluded for now)
+Documentation/Research Paper/
