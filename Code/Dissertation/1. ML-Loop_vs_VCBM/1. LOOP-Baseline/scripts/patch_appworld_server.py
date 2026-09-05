@@ -1,8 +1,17 @@
+import os
+import sys
 from pathlib import Path
 
 
 def patch_server():
-    filepath = "appworld-env/lib/python3.12/site-packages/appworld/serve/environment.py"
+    filepath = (
+        sys.argv[1]
+        if len(sys.argv) > 1
+        else os.environ.get(
+            "APPWORLD_ENV_SERVER_PATH",
+            "appworld-env/lib/python3.12/site-packages/appworld/serve/environment.py",
+        )
+    )
     if not Path(filepath).exists():
         print(f"Error: {filepath} not found. Please make sure appworld-env is set up.")
         return False

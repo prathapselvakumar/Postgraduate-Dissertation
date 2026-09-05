@@ -108,6 +108,10 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+appworld-env/
+data/appworld_root/
+# Local machine-specific poetry venv/cache-dir overrides (see CLAUDE.md "Running locally")
+poetry.toml
 
 # Spyder project settings
 .spyderproject
