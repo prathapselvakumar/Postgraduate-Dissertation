@@ -25,7 +25,9 @@ def build_memory_bank(
     Args:
         turn_bookmarks: per-turn bookmark flags.
         turn_observations: per-turn ipython execution-result text, used as the state for g_phi.
-        turn_index_to_return_to_go: per-turn return-to-go G_t.
+        turn_index_to_return_to_go: per-turn return to store. train.py passes the episode
+            return for every turn, and retrieve_and_weight does not read it, so it does not
+            affect the credit weights.
         dim: state encoder embedding dimension.
 
     Returns:

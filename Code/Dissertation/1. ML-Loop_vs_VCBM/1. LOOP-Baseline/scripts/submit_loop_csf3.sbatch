@@ -200,5 +200,6 @@ poetry run accelerate launch \
     rl.params.minibatch_size=32 \
     rl.eval.eval_every_n_iterations=5 \
     rl.eval.overrides.rl.num_scenario_runners=12 \
-    rl.eval.overrides.rl.params.scenarios_per_iteration=10
+    rl.eval.overrides.rl.params.scenarios_per_iteration=10 \
+    rl.vcc_blend_alpha=0.0
 

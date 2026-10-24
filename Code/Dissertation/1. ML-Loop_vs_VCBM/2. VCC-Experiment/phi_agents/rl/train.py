@@ -858,6 +858,25 @@ class RLOOTrainer:
         )
         return loss, debug_info
 
+    def _bookmark_stats(self, rollouts: Sequence[TrainingRollout]) -> dict[str, float]:
+        """Per-iteration VCBM activity, so a run's logs show whether bookmark credit was used.
+
+        A rollout with no bookmarked turns trains on the plain LOOP advantage, so a run whose
+        `vcbm/frac_rollouts_with_bookmarks` stays at 0 was plain LOOP regardless of
+        `rl.vcc_blend_alpha` (for example when the AppWorld server is unpatched).
+        """
+        if not rollouts:
+            return {}
+        top_k = self._cfg.get("vcc_top_k", 4)
+        counts = [sum(bool(b) for b in getattr(r, "turn_bookmarks", []) or []) for r in rollouts]
+        n = len(counts)
+        return {
+            "vcbm/blend_beta": float(self._cfg.get("vcc_blend_alpha", 1.0)),
+            "vcbm/frac_rollouts_with_bookmarks": sum(c > 0 for c in counts) / n,
+            "vcbm/mean_bookmarks_per_rollout": sum(counts) / n,
+            "vcbm/frac_rollouts_retrieval_path": sum(c > top_k for c in counts) / n,
+        }
+
     def _vcbm_weights(
         self, rollout: TrainingRollout, n_output_tokens: int, device: torch.device
     ) -> torch.Tensor:
@@ -865,9 +884,24 @@ class RLOOTrainer:
 
         Builds an episodic memory bank from bookmarked turns, retrieves the top-k events most
         similar to the terminal observation, and maps the resulting softmax weights to
-        per-token weights. Falls back to the flat alpha-floor weighting (all bookmarks
-        weighted equally) when there are too few bookmarked turns for retrieval to be
-        meaningful, since "retrieve top-k of fewer than k" degenerates to "use all bookmarks".
+        per-token weights.
+
+        `rl.vcc_weighting_mode` selects how the two cases combine:
+
+        - "legacy" (default, the behaviour of the published runs): with at most top_k
+          bookmarks, every bookmarked turn gets weight 1.0 and every other turn gets alpha;
+          with more than top_k, retrieved turns get their softmax weight (summing to 1 over
+          the retrieved set, so about 1/top_k each) and every other turn, including
+          non-retrieved bookmarks, gets alpha. The bookmark:floor ratio therefore drops from
+          1/alpha to roughly 1/(top_k * alpha) once a rollout crosses top_k bookmarks, and a
+          retrieved turn can fall below alpha.
+        - "unified": always retrieve over min(top_k, n_bookmarks) bookmarks, scale the softmax
+          weights by the number retrieved so they average 1.0, and clamp them at alpha from
+          below, so retrieved turns are never down-weighted relative to the floor and the
+          weighting is continuous in the number of bookmarks.
+
+        The memory bank is built per rollout and discarded afterwards; it carries nothing
+        across rollouts or iterations.
         """
         from phi_agents.rl.type_defs import IPythonMessage
         from phi_agents.rl.vcc.credit_weights import (
@@ -891,8 +925,25 @@ class RLOOTrainer:
         turn_returns = [rollout.ret] * len(turn_bookmarks)
 
         memory = build_memory_bank(turn_bookmarks, turn_observations, turn_returns)
+        mode = self._cfg.get("vcc_weighting_mode", "legacy")
+        if mode not in ("legacy", "unified"):
+            raise ValueError(f"Unknown rl.vcc_weighting_mode={mode!r}; use 'legacy' or 'unified'")
 
-        if len(memory) > top_k:
+        if mode == "unified" and memory:
+            turn_weights = retrieve_and_weight(
+                memory,
+                terminal_observation,
+                top_k=top_k,
+                temperature=self._cfg.get("vcc_temperature", 1.0),
+            )
+            n_retrieved = len(turn_weights)
+            turn_weights = {
+                turn_idx: max(alpha, weight * n_retrieved) for turn_idx, weight in turn_weights.items()
+            }
+            weights = compute_retrieval_credit_weights(
+                turn_weights, turn_token_spans, alpha=alpha, device=device
+            )
+        elif len(memory) > top_k:
             turn_weights = retrieve_and_weight(
                 memory,
                 terminal_observation,
@@ -1767,6 +1818,7 @@ class RLOOTrainer:
                 )
                 local_rollouts, local_adv, local_rollout_ids = local_rollouts_and_adv_and_ids[0]  # type: ignore
 
+            bookmark_stats: dict[str, float] = {}
             if self._with_wandb:
                 assert all_rollouts_and_adv_and_ids is not None
                 filtered_rollouts: list[TrainingRollout] = list(
@@ -1775,6 +1827,7 @@ class RLOOTrainer:
                 self.log_rollout_metrics(
                     all_rollouts, prefix="all_rollouts", log_highest_return=True
                 )
+                bookmark_stats = self._bookmark_stats(all_rollouts)
                 self.log_rollout_metrics(
                     filtered_rollouts,
                     prefix="filtered_rollouts",
@@ -1840,6 +1893,7 @@ class RLOOTrainer:
                         **profiling_memory_summary(),
                         **self._speedometer.summary("system_throughput/"),
                         **recompute_stats,
+                        **bookmark_stats,
                     ),
                 )
 

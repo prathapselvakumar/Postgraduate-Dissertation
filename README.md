@@ -47,9 +47,9 @@ VCBM needed fewer episodes to converge, and a two-sided Mann-Whitney U test foun
 
 ### 2. LOOP versus VCBM-blended LOOP on AppWorld
 
-Both runs fine-tuned Qwen2.5-7B-Instruct with LoRA (rank 8, alpha 16) for 200 iterations (9,600 rollouts) on the AppWorld training split, using FSDP2 across two GPUs on the University of Manchester CSF3 cluster, AdamW at a constant learning rate of 5 × 10⁻⁵, a sparse per-episode reward, and up to 50 interactions per episode. The baseline used plain LOOP (β = 0); the comparison blended in VCBM credit (β = 1, τ = 0.5, top-k = 6, α = 0.05).
+Both runs fine-tuned Qwen2.5-7B-Instruct with LoRA (rank 8, alpha 16) for 200 iterations (9,600 rollouts) on the AppWorld training split, using FSDP2 across two GPUs on the University of Manchester CSF3 cluster, AdamW at a constant learning rate of 5 × 10⁻⁵, a sparse per-episode reward, and up to 50 interactions per episode. The baseline was intended to use plain LOOP (β = 0); the comparison blended in VCBM credit (β = 1, τ = 0.5, top-k = 6, α = 0.05). Both arms share the same training code, in which β defaults to 1, and the baseline's launch script did not set it, so whether the baseline really ran with β = 0 still has to be confirmed from its logged configuration (`1. LOOP-Baseline/scripts/verify_published_runs.py` does this on CSF3).
 
-All figures below are from the final logged training step, taken from the Weights & Biases summary export for each run.
+All figures below are from the final logged training step, taken from the Weights & Biases summary export for each run. They come from that step's 48 training rollouts (12 scenarios), not a held-out split, and the two runs' final batches had different difficulty mixes: VCBM's contained 4 hard-task rollouts against LOOP's 8. At LOOP's mix, VCBM's per-difficulty rates give an overall success of 0.417 (+17.6%), and the difficulty-averaged success rate (0.257 vs. 0.333, +29.7%) does not depend on the mix.
 
 | Metric | LOOP | VCBM | Change |
 | :--- | ---: | ---: | ---: |
@@ -68,8 +68,9 @@ VCBM-blended LOOP had a higher return and success rate, with almost all of the g
 ## Limitations
 
 - The AppWorld comparison is a single run of each method, so none of its differences have been tested for statistical significance. Only the watch-repair result has been tested across seeds.
-- The two AppWorld runs differ in three VCBM hyperparameters as well as β, and represent one hyperparameter setting, not a sweep.
-- Two values in the LOOP run's logged configuration do not match its observed behaviour (the rollout count, and a sampling temperature of 0 alongside non-zero advantages). These remain unexplained.
+- The two AppWorld runs differ in three VCBM hyperparameters (τ, top-k, α). The baseline's code reads these whenever β > 0, so they only stop mattering once the baseline's β = 0 is confirmed. Either way the comparison is one hyperparameter setting, not a sweep.
+- The 48 rollouts per iteration come from 12 scenarios × 4 rollouts in the launch script. The logged temperature of 0 is the evaluation sampler's override (`rl.eval.overrides.llm.temperature`); training sampled at temperature 1.0.
+- The AppWorld memory bank is rebuilt for every rollout, so it carries nothing across rollouts or iterations. Rollouts with at most top-k bookmarks give each bookmark weight 1, while those with more give retrieved bookmarks softmax weights averaging 1/k, so credit becomes much less concentrated once a rollout passes k bookmarks. The runs did not log how many rollouts had bookmarks; the code now logs this as `vcbm/*` metrics.
 - The AppWorld bookmark detector is a hand-written rule about tool calls. It may not carry over to tasks where the causally important actions are something else.
 - Run-peak stability figures discussed in the dissertation were read from exported charts, not numeric logs, and carry an estimated 10% to 20% reading error. They are left out of the table above.
 
@@ -85,7 +86,8 @@ Postgraduate-Dissertation/
 │   │   ├── 2. Rudder_vs_VCBM/
 │   │   │   ├── 1. RUDDER-Baseline/    RUDDER on the watch-repair task
 │   │   │   ├── 2. VCBM-Experiment/    VCBM on the watch-repair task
-│   │   │   └── 3. Outputs/            Watch-repair and Mars-rover run outputs
+│   │   │   ├── 3. Outputs/            Watch-repair and Mars-rover run outputs
+│   │   │   └── 4. Fair-Comparison/    Controlled re-run: matched exploration, MC baselines, held-out seeds
 │   │   └── 3. Final Outputs/          Exported result graphs (PDF) for both comparisons
 │   └── Research work/                 Git submodules: vcbm, VCBM-rudder-demonstration-code
 └── Documentation/

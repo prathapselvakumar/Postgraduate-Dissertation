@@ -197,9 +197,14 @@ trajectory-level advantage.
   observation and each memory key, retrieves the top-`rl.vcc_top_k` events, and assigns
   temperature-scaled (`rl.vcc_temperature`) softmax weights over the retrieved set. These map to
   per-token weights via `credit_weights.py::compute_retrieval_credit_weights` (non-retrieved turns
-  get the `rl.vcc_alpha` floor weight, default `0.1`). When a rollout has fewer bookmarked turns
-  than `vcc_top_k`, retrieval degenerates to "use all bookmarks" and the code instead calls the
-  simpler flat-floor `compute_credit_weights` directly (equivalent result, cheaper).
+  get the `rl.vcc_alpha` floor weight, default `0.1`). Under the default
+  `rl.vcc_weighting_mode=legacy`, a rollout with at most `vcc_top_k` bookmarked turns skips
+  retrieval and calls `compute_credit_weights`, which gives every bookmarked turn weight 1.0. This
+  is **not** equivalent to the retrieval path, whose softmax weights sum to 1 over the retrieved set,
+  so the bookmark:floor ratio drops sharply once a rollout passes `vcc_top_k` bookmarks.
+  `rl.vcc_weighting_mode=unified` always retrieves, rescales the weights to average 1.0, and clamps
+  them at `vcc_alpha`. The memory bank is rebuilt per rollout; nothing persists across rollouts.
+  Per-iteration `vcbm/*` W&B metrics record how often bookmarks and retrieval were actually used.
 - **VCBM/LOOP blend**: `RLOOTrainer._vcbm_weights`/`_loss` (`train.py`) combine the retrieval
   weights with the plain LOOP advantage as `(1 - rl.vcc_blend_alpha) * A_LOOP + rl.vcc_blend_alpha
   * A_VCBM`; `vcc_blend_alpha` defaults to `1.0` (pure VCBM) but can be set to `0.0` to recover

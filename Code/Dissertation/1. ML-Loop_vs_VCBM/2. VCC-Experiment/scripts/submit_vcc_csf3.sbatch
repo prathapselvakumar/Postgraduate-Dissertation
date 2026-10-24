@@ -203,5 +203,6 @@ poetry run accelerate launch \
     rl.eval.overrides.rl.params.scenarios_per_iteration=10 \
     rl.vcc_temperature=0.5 \
     rl.vcc_top_k=6 \
-    rl.vcc_alpha=0.05
+    rl.vcc_alpha=0.05 \
+    rl.vcc_blend_alpha=1.0
 

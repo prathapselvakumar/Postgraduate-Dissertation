@@ -26,6 +26,7 @@ from .server import (
 )
 
 logger = get_phi_logger()
+_warned_unpatched_server = False
 
 DUMMY_TASK_ID = "82e2fac_1"
 DEFAULT_SPLITS_DIR = "data/appworld_splits"
@@ -326,6 +327,16 @@ class AppWorldInterface:
             return res["output"], res["is_bookmark"]
         except requests.HTTPError as e:
             if e.response is not None and e.response.status_code == 404:
+                # Unpatched AppWorld server: no turn is ever bookmarked, so VCBM silently
+                # trains on the plain LOOP advantage. Run scripts/patch_appworld_server.py.
+                global _warned_unpatched_server
+                if not _warned_unpatched_server:
+                    logger.warning(
+                        "AppWorld server has no /execute_with_bookmark route; every turn is "
+                        "treated as non-bookmarked and VCBM credit is inactive. Run "
+                        "scripts/patch_appworld_server.py to enable it."
+                    )
+                    _warned_unpatched_server = True
                 output = self.execute(code)
                 return output, False
             raise AppWorldExecutionError from e

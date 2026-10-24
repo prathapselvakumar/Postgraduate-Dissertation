@@ -99,7 +99,7 @@ class WatchRepairEnvironment:
 
 class TabularActor:
 
-    def __init__(self, env, lr):
+    def __init__(self, env, lr, eps_start=0.10, eps_decay=1.0, eps_min=0.10):
         self.q_table = np.empty(shape=(env.get_n_actions() + env.get_state_max_values()))
         self.q_table[:] = np.nan
         self.q_table[1, :] = 10  # Optimistic initialization
@@ -108,6 +108,17 @@ class TabularActor:
         self.env = env
         self.state = env.reset()
         self.lr = lr
+        # Exploration schedule: eps = max(eps_min, eps_start * eps_decay ** episode).
+        # The defaults reproduce the original demo's constant 10% exploration, which caps
+        # the expected correct-decision rate at 0.90 + 0.10 * 0.5 = 95%. Callers set
+        # `self.episode` once per episode to use a decaying schedule.
+        self.eps_start = eps_start
+        self.eps_decay = eps_decay
+        self.eps_min = eps_min
+        self.episode = 0
+
+    def current_eps(self):
+        return max(self.eps_min, self.eps_start * (self.eps_decay ** self.episode))
 
     def reset(self):
         self.state = self.env.reset()
@@ -122,8 +133,8 @@ class TabularActor:
         else:
             a = np.random.choice(2)
 
-        # Explore with 5% chance.
-        if np.random.random() < 0.10:
+        # Explore with probability eps (10% under the default constant schedule).
+        if np.random.random() < self.current_eps():
             a = np.random.choice(2)
         if self.state[-1] > 0:
             a = 1

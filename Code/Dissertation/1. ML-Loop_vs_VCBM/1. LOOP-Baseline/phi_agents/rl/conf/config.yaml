@@ -18,6 +18,9 @@ rl:
   vcc_top_k: 4 # Eq. 8: number of causal events retrieved from the episodic memory bank
   vcc_temperature: 1.0 # Eq. 9: retrieval softmax temperature
   vcc_blend_alpha: 1.0 # Eq. 14: VCBM/LOOP blend coefficient (1.0 = pure VCBM)
+  # "legacy" reproduces the published runs; "unified" removes the weighting jump at top_k
+  # (see RLOOTrainer._vcbm_weights).
+  vcc_weighting_mode: legacy
 
   fsdp: True
 
