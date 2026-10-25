@@ -1,43 +1,27 @@
+"""Add the /execute_with_bookmark route that VCBM needs to the AppWorld environment server.
+
+Patches the `appworld` installation the training job will actually launch, resolved the same
+way as phi_agents/appworld/server.py: `appworld-env/bin/appworld` relative to the current
+directory if it exists, otherwise `appworld` on PATH. Pass a path to environment.py, or set
+APPWORLD_ENV_SERVER_PATH, to patch a specific file instead.
+
+Exits non-zero when it cannot patch, so job scripts can stop instead of training without
+bookmarks. (An earlier version hardcoded a python3.12 path and exited 0 on failure; both
+published AppWorld runs trained with an unpatched server as a result.)
+
+Usage:
+    python scripts/patch_appworld_server.py [path/to/appworld/serve/environment.py]
+"""
+
 import os
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 
+DEFAULT_APPWORLD_BIN = "appworld-env/bin/appworld"
 
-def patch_server():
-    filepath = (
-        sys.argv[1]
-        if len(sys.argv) > 1
-        else os.environ.get(
-            "APPWORLD_ENV_SERVER_PATH",
-            "appworld-env/lib/python3.12/site-packages/appworld/serve/environment.py",
-        )
-    )
-    if not Path(filepath).exists():
-        print(f"Error: {filepath} not found. Please make sure appworld-env is set up.")
-        return False
-
-    with open(filepath) as f:
-        content = f.read()
-
-    if "execute_with_bookmark" in content:
-        print("Server is already patched.")
-        return True
-
-    execute_marker = '@app.post("/execute")'
-    idx = content.find(execute_marker)
-    if idx == -1:
-        print("Error: Could not find @app.post('/execute') route in environment.py")
-        return False
-
-    end_marker = 'return {"output": output}'
-    end_idx = content.find(end_marker, idx)
-    if end_idx == -1:
-        print("Error: Could not find the end of execute function in environment.py")
-        return False
-
-    end_of_func = end_idx + len(end_marker)
-
-    new_endpoint = """
+NEW_ENDPOINT = """
 
 @app.post("/execute_with_bookmark")
 async def execute_with_bookmark(task_id: str = Body(...), code: str = Body(...)) -> dict[str, Any]:
@@ -53,14 +37,51 @@ async def execute_with_bookmark(task_id: str = Body(...), code: str = Body(...))
         )
     return {"output": {"output": output, "is_bookmark": is_bookmark}}"""
 
-    patched_content = content[:end_of_func] + new_endpoint + content[end_of_func:]
 
-    with open(filepath, "w") as f:
-        f.write(patched_content)
+def find_environment_py() -> Path:
+    if len(sys.argv) > 1:
+        return Path(sys.argv[1])
+    if os.environ.get("APPWORLD_ENV_SERVER_PATH"):
+        return Path(os.environ["APPWORLD_ENV_SERVER_PATH"])
 
-    print("Successfully patched AppWorld server environment.py!")
-    return True
+    appworld_bin = DEFAULT_APPWORLD_BIN if Path(DEFAULT_APPWORLD_BIN).exists() else shutil.which("appworld")
+    if not appworld_bin:
+        sys.exit("Error: no appworld-env/bin/appworld here and no `appworld` on PATH.")
+
+    # Ask the interpreter that runs the appworld CLI where its package lives.
+    shebang = Path(appworld_bin).read_text(errors="replace").splitlines()[0]
+    python = shebang[2:].strip() if shebang.startswith("#!") else sys.executable
+    result = subprocess.run(
+        [python, "-c", "import appworld, os; print(os.path.dirname(appworld.__file__))"],
+        capture_output=True, text=True,
+    )
+    if result.returncode != 0:
+        sys.exit(f"Error: could not import appworld with {python}:\n{result.stderr}")
+    print(f"appworld CLI: {appworld_bin}\nappworld package: {result.stdout.strip()}")
+    return Path(result.stdout.strip()) / "serve" / "environment.py"
+
+
+def patch_server(filepath: Path) -> None:
+    if not filepath.exists():
+        sys.exit(f"Error: {filepath} not found. Is appworld installed?")
+
+    content = filepath.read_text()
+    if "execute_with_bookmark" in content:
+        print(f"Already patched: {filepath}")
+        return
+
+    idx = content.find('@app.post("/execute")')
+    if idx == -1:
+        sys.exit(f"Error: no @app.post('/execute') route in {filepath}")
+    end_marker = 'return {"output": output}'
+    end_idx = content.find(end_marker, idx)
+    if end_idx == -1:
+        sys.exit(f"Error: could not find the end of the execute route in {filepath}")
+
+    end_of_func = end_idx + len(end_marker)
+    filepath.write_text(content[:end_of_func] + NEW_ENDPOINT + content[end_of_func:])
+    print(f"Patched: {filepath}")
 
 
 if __name__ == "__main__":
-    patch_server()
+    patch_server(find_environment_py())

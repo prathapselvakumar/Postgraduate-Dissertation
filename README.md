@@ -27,7 +27,7 @@ Both versions of VCBM follow the same three stages: detect decision points that 
 | Stage | Tabular MDP (watch repair) | Language-based MDP (AppWorld) |
 | :--- | :--- | :--- |
 | Detect | A statistical test classifies each state component as action-controlled, noise, static, or clock | A structural rule marks tool calls that change the environment's state |
-| Store | Per-bookmark return statistics, updated with Welford's online estimator | An episodic memory of bookmarked turns |
+| Store | Per-bookmark return statistics, updated with Welford's online estimator | A memory of the rollout's own bookmarked turns, rebuilt for each rollout |
 | Weight | Action values estimated directly at each bookmarked decision | Cosine-similarity retrieval over the memory gives temperature-scaled weights, blended with LOOP's leave-one-out advantage |
 
 In the tabular setting, the environment is small enough to discover its causal structure from interaction data. In AppWorld, the state is natural language and only partly observed, so causal discovery is not tractable and the structural rule takes its place.
@@ -45,13 +45,15 @@ The watch-repair task comes from the RUDDER demonstration code. At the first ste
 
 VCBM needed fewer episodes to converge, and a two-sided Mann-Whitney U test found the difference significant (U = 19, p < 0.001, rank-biserial r = 0.91). In all 20 seeds, VCBM's classifier labelled the five state components exactly as the environment generates them: the repaired flag as action-controlled, the two transport counters as noise, the brand as static, and the timestep as a clock.
 
-### 2. LOOP versus VCBM-blended LOOP on AppWorld
+### 2. AppWorld: two runs that both turned out to be plain LOOP
 
-Both runs fine-tuned Qwen2.5-7B-Instruct with LoRA (rank 8, alpha 16) for 200 iterations (9,600 rollouts) on the AppWorld training split, using FSDP2 across two GPUs on the University of Manchester CSF3 cluster, AdamW at a constant learning rate of 5 × 10⁻⁵, a sparse per-episode reward, and up to 50 interactions per episode. The baseline was intended to use plain LOOP (β = 0); the comparison blended in VCBM credit (β = 1, τ = 0.5, top-k = 6, α = 0.05). Both arms share the same training code, in which β defaults to 1, and the baseline's launch script did not set it, so whether the baseline really ran with β = 0 still has to be confirmed from its logged configuration (`1. LOOP-Baseline/scripts/verify_published_runs.py` does this on CSF3).
+These two runs were meant to compare plain LOOP with VCBM-blended LOOP. That comparison did not happen. Bookmark detection needs a patched AppWorld server endpoint, and neither run's server had it: every bookmark request returned HTTP 404, all 80,332 in the baseline's 200-iteration job (18631089) and all 103,457 in the VCBM job (18668337). The training code treated each 404 as "no bookmark", so no rollout in either run was ever bookmarked and both trained on the plain LOOP advantage. **The AppWorld version of VCBM is untested.** The code now warns when the endpoint is missing and logs per-iteration bookmark counts (`vcbm/*`), so this cannot happen silently again.
 
-All figures below are from the final logged training step, taken from the Weights & Biases summary export for each run. They come from that step's 48 training rollouts (12 scenarios), not a held-out split, and the two runs' final batches had different difficulty mixes: VCBM's contained 4 hard-task rollouts against LOOP's 8. At LOOP's mix, VCBM's per-difficulty rates give an overall success of 0.417 (+17.6%), and the difficulty-averaged success rate (0.257 vs. 0.333, +29.7%) does not depend on the mix.
+Both runs fine-tuned Qwen2.5-7B-Instruct with LoRA (rank 8, alpha 16) for 200 iterations of 12 scenarios × 4 rollouts (9,600 rollouts) on the AppWorld training split, using FSDP2 across two GPUs on the University of Manchester CSF3 cluster, AdamW at a constant learning rate of 5 × 10⁻⁵, sampling temperature 1.0, a sparse per-episode reward, and up to 50 interactions per episode. They were launched with different VCBM settings (Run A: τ = 1, top-k = 4, α = 0.1; Run B: τ = 0.5, top-k = 6, α = 0.05; both β = 1), which had no effect because nothing was bookmarked.
 
-| Metric | LOOP | VCBM | Change |
+What they do show is how far two runs of the same algorithm can drift apart. Figures are from the final logged training step (W&B summary), computed on that step's 48 training rollouts, not a held-out split. The two final batches had different difficulty mixes (Run B's had 4 hard-task rollouts against Run A's 8), so at Run A's mix Run B's overall success would be 0.417 (+17.6%).
+
+| Metric | Run A | Run B | B vs. A |
 | :--- | ---: | ---: | ---: |
 | Mean return | 0.6682 | 0.7300 | +9.3% |
 | Success rate, all tasks | 0.3542 | 0.4583 | +29.4% |
@@ -63,13 +65,13 @@ All figures below are from the final logged training step, taken from the Weight
 | Mean output tokens per rollout | 2,001.6 | 1,625.2 | −18.8% |
 | Return per 1,000 output tokens | 0.334 | 0.449 | +34.6% |
 
-VCBM-blended LOOP had a higher return and success rate, with almost all of the gain on medium-difficulty tasks. Neither method solved a hard task, and LOOP did better on easy tasks. VCBM also used fewer tokens per rollout while succeeding more often, so the shorter rollouts reflect finishing tasks in fewer steps, not giving up early. The final-step KL estimate was the one stability measure that slightly favoured LOOP.
+Two runs of one algorithm differ by nearly 30% in success and almost 19% in output tokens, which is as large as the gains this work originally attributed to VCBM. A credit-assignment method on AppWorld needs several seeds per arm, or at least a held-out evaluation of each final checkpoint, before a difference between two runs means anything.
 
 ## Limitations
 
-- The AppWorld comparison is a single run of each method, so none of its differences have been tested for statistical significance. Only the watch-repair result has been tested across seeds.
-- The two AppWorld runs differ in three VCBM hyperparameters (τ, top-k, α). The baseline's code reads these whenever β > 0, so they only stop mattering once the baseline's β = 0 is confirmed. Either way the comparison is one hyperparameter setting, not a sweep.
-- The 48 rollouts per iteration come from 12 scenarios × 4 rollouts in the launch script. The logged temperature of 0 is the evaluation sampler's override (`rl.eval.overrides.llm.temperature`); training sampled at temperature 1.0.
+- VCBM has not been tested on AppWorld: both AppWorld runs were plain LOOP because the bookmark endpoint was missing. Testing it needs a run whose job log shows `POST /execute_with_bookmark ... 200`, ideally with several seeds per arm.
+- Only the watch-repair results have been tested across seeds.
+- The 48 rollouts per iteration come from 12 scenarios × 4 rollouts in the launch script. The logged temperature of 0 comes from the evaluator's separate W&B runs, which use the evaluation override (`rl.eval.overrides.llm.temperature = 0`); every training segment of both runs logged temperature 1.0.
 - The AppWorld memory bank is rebuilt for every rollout, so it carries nothing across rollouts or iterations. Rollouts with at most top-k bookmarks give each bookmark weight 1, while those with more give retrieved bookmarks softmax weights averaging 1/k, so credit becomes much less concentrated once a rollout passes k bookmarks. The runs did not log how many rollouts had bookmarks; the code now logs this as `vcbm/*` metrics.
 - The AppWorld bookmark detector is a hand-written rule about tool calls. It may not carry over to tasks where the causally important actions are something else.
 - Run-peak stability figures discussed in the dissertation were read from exported charts, not numeric logs, and carry an estimated 10% to 20% reading error. They are left out of the table above.
