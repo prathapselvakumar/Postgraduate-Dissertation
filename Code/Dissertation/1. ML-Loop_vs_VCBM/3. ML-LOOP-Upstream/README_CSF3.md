@@ -3,7 +3,7 @@
 This folder is the LOOP baseline for the 32B AppWorld comparison. It is Apple's
 [ml-loop](https://github.com/apple/ml-loop) at commit `f14107a`, with infrastructure fixes
 needed to run on the CSF3 cluster and **no VCBM code**. Nothing in it reads `vcc_*` settings,
-calls the bookmark endpoint, or changes LOOP's advantage: every token gets the leave-one-out
+calls the bookmark endpoint (`interface.py` has no `execute_with_bookmark`), or changes LOOP's advantage: every token gets the leave-one-out
 advantage, as in the original release.
 
 `1. LOOP-Baseline/` is not used for this: despite its name it contains the full VCBM code path,
@@ -18,6 +18,7 @@ algorithm, the loss, the advantage, or the agent.
 | File | Change | Why |
 |---|---|---|
 | `phi_agents/vllm/vllm_server.py` | Pass `--compilation-config={"level": 0}` to vLLM | CSF3 compute nodes have no `nvcc`, so torch.compile crashes |
+| `phi_agents/appworld/interface.py` | Wait up to 120 s (60 × 2 s) for each AppWorld server instead of 5 s; don't crash a rank if a stuck server ignores SIGKILL | AppWorld takes 60–120 s to load its dataset on CSF3 compute nodes; with upstream's 5 s the first trial failed with "Could not connect to http://localhost:…" |
 | `phi_agents/rl/utils/download.py` | Load models from the local HF cache when offline | Jobs run with `HF_HUB_OFFLINE=1` |
 | `phi_agents/rl/train.py` | Timeout on LoRA saves; poll eval completion across ranks instead of blocking; SIGTERM handler; configurable NCCL timeout | A slow scratch filesystem or stuck eval otherwise hangs all GPUs until the NCCL watchdog kills the job |
 | `phi_agents/rl/callbacks.py` | Non-blocking eval polling and a ping timeout | Same hang |
