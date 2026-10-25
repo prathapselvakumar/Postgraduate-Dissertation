@@ -63,12 +63,13 @@ rm -rf ~/scratch/checkpoints/csf3_7b_2gpu_mlloop_s1
 sbatch scripts/submit_mlloop_7b_2gpu.sbatch 1
 ```
 
-The full run trains **until convergence** with the same rule as the VCBM arm (stop when the
-20-iteration moving average of return has not improved by more than 0.01 for 40 iterations, after
-at least 100) and re-queues itself across the 4-day limit until then. Options (set before `sbatch`):
+The full run trains **exactly 400 iterations** (the same budget in both arms) and re-queues
+itself across the 4-day limit, resuming from the last checkpoint, until done. Options (set
+before `sbatch`):
 
-- `ITERS=600` — hard cap on total iterations (default 600)
-- `CONVERGE=false` — run exactly `ITERS` iterations, no early stop
+- `ITERS=400` — total iterations (default 400)
+- `CONVERGE=true` — also stop early once the 20-iteration moving average of return has not
+  improved by more than 0.01 for 40 iterations (after at least 100); default false
 - `AUTO_RESUBMIT=0` — do not queue a continuation
 
 Use the same seed number as the VCBM run it is paired with (`... 1` with `vcbm 1`, and so on).

@@ -18,17 +18,17 @@
 #   sbatch scripts/submit_32b_4gpu.sbatch loop 1     # plain LOOP (beta = 0), seed 1
 #   ITERS=2 sbatch scripts/submit_32b_4gpu.sbatch vcbm 1   # smoke test first
 #
-# Runs until convergence: training stops itself when the return plateaus, and the job
-# re-queues itself across the 4-day limit (resuming from the last checkpoint) until then.
-# ITERS caps the total (default 600); CONVERGE=false runs exactly ITERS iterations;
+# Runs ITERS iterations (default 400), re-queueing itself across the 4-day limit and
+# resuming from the last checkpoint until done. CONVERGE=true also stops early once the
+# training return plateaus (phi_agents/rl/convergence.py);
 # AUTO_RESUBMIT=0 disables re-queueing. Stop a chain with: scancel -u $USER
 
 set -euo pipefail
 
 ARM="${1:-vcbm}"
 SEED="${2:-1}"
-ITERS="${ITERS:-600}"          # hard cap; convergence normally stops earlier
-CONVERGE="${CONVERGE:-true}"   # CONVERGE=false runs exactly $ITERS iterations
+ITERS="${ITERS:-400}"          # total iterations (a cap when CONVERGE=true)
+CONVERGE="${CONVERGE:-false}"  # CONVERGE=true also stops early once the return plateaus
 case "$ARM" in
     vcbm) BETA=1.0 ;;
     loop) BETA=0.0 ;;
@@ -37,7 +37,7 @@ esac
 EXPERIMENT="csf3_32b_4gpu_${ARM}_s${SEED}"
 echo "Arm         : $ARM (vcc_blend_alpha=$BETA)"
 echo "Seed        : $SEED"
-echo "Iterations  : up to $ITERS (stop on convergence: $CONVERGE)"
+echo "Iterations  : $ITERS (early stop on convergence: $CONVERGE)"
 echo "Experiment  : $EXPERIMENT"
 
 echo "=================================================="

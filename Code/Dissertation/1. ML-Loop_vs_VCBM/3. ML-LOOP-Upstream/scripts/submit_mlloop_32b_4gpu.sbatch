@@ -18,20 +18,20 @@
 #   sbatch scripts/submit_mlloop_32b_4gpu.sbatch 1            # seed 1
 #   ITERS=2 sbatch scripts/submit_mlloop_32b_4gpu.sbatch 1    # smoke test first
 #
-# Runs until convergence: training stops itself when the return plateaus, and the job
-# re-queues itself across the 4-day limit (resuming from the last checkpoint) until then.
-# ITERS caps the total (default 600); CONVERGE=false runs exactly ITERS iterations;
+# Runs ITERS iterations (default 400), re-queueing itself across the 4-day limit and
+# resuming from the last checkpoint until done. CONVERGE=true also stops early once the
+# training return plateaus (phi_agents/rl/convergence.py);
 # AUTO_RESUBMIT=0 disables re-queueing. Stop a chain with: scancel -u $USER
 
 set -euo pipefail
 
 SEED="${1:-1}"
-ITERS="${ITERS:-600}"          # hard cap; convergence normally stops earlier
-CONVERGE="${CONVERGE:-true}"   # CONVERGE=false runs exactly $ITERS iterations
+ITERS="${ITERS:-400}"          # total iterations (a cap when CONVERGE=true)
+CONVERGE="${CONVERGE:-false}"  # CONVERGE=true also stops early once the return plateaus
 EXPERIMENT="csf3_32b_4gpu_mlloop_s${SEED}"
 echo "Arm         : ML-LOOP (upstream, no VCBM)"
 echo "Seed        : $SEED"
-echo "Iterations  : up to $ITERS (stop on convergence: $CONVERGE)"
+echo "Iterations  : $ITERS (early stop on convergence: $CONVERGE)"
 echo "Experiment  : $EXPERIMENT"
 
 echo "=================================================="
