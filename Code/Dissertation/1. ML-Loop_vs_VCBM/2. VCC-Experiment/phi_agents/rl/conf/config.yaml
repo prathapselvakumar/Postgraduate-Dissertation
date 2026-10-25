@@ -12,6 +12,16 @@ dry_run: false
 rl:
   seed: null
 
+  # Plateau-based stopping (phi_agents/rl/convergence.py). Off by default; total_iterations
+  # remains the hard cap. Converged = the `window`-iteration moving average of training return
+  # has not improved by more than `min_delta` for `patience` iterations, after `min_iterations`.
+  convergence:
+    enable: false
+    window: 20
+    patience: 40
+    min_delta: 0.01
+    min_iterations: 100
+
   # VCBM (Visual Causal Chain Bookmarking) credit assignment — see CLAUDE.md.
   # Always on for rollouts with at least one bookmarked (state-changing) turn.
   vcc_alpha: 0.1 # floor weight for non-retrieved/non-bookmarked turns

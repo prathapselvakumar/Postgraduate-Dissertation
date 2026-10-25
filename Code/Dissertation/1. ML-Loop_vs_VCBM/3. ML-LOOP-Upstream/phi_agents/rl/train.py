@@ -42,6 +42,7 @@ from phi_agents.rl.cloud_checkpointer import (
     get_last_checkpoint,
 )
 from phi_agents.rl.config import get_config
+from phi_agents.rl.convergence import ConvergenceTracker
 from phi_agents.rl.parallel_scenario_sampler import ParallelScenarioSampler
 from phi_agents.rl.rl_utils import (
     Baseline,
@@ -378,6 +379,19 @@ class RLOOTrainer:
         self._iterations_completed = 0
         self._global_step = 0
         self._rollouts_generated = self._output_tokens_generated = 0
+
+        # Optional plateau-based stopping (rl.convergence.enable); total_iterations stays the cap.
+        conv_cfg = self._cfg.get("convergence", None)
+        self._convergence: ConvergenceTracker | None = (
+            ConvergenceTracker(
+                window=conv_cfg.window,
+                patience=conv_cfg.patience,
+                min_delta=conv_cfg.min_delta,
+                min_iterations=conv_cfg.min_iterations,
+            )
+            if conv_cfg is not None and conv_cfg.get("enable", False)
+            else None
+        )
 
         self._with_wandb = self._rank == 0 and self._wandb_cfg.enable
         wandb_run_name: str | None = None
@@ -1560,6 +1574,14 @@ class RLOOTrainer:
             else:
                 last_checkpoint_local_path = None
 
+            if self._convergence is not None:
+                self._convergence.load(self._cfg.cloud_path, self._iterations_completed)
+                self._rank0_logger.info(
+                    f"Convergence tracking on: resumed with {len(self._convergence.returns)} "
+                    f"iterations of history, best moving average at iteration "
+                    f"{self._convergence.best_iteration}"
+                )
+
         if not self._exclusive_inference_and_learning:
             self._rank0_logger.info(
                 "Learning and inference fit into memory together, initialize the model while inference servers are starting..."
@@ -1784,6 +1806,26 @@ class RLOOTrainer:
             )
             self._save_lora_checkpoint(last_checkpoint_local_path)
             self._cloud_checkpointer.on_save()
+
+            if self._convergence is not None:
+                # Every rank sees the same reduced stats, but broadcast rank 0's decision so
+                # all ranks are guaranteed to leave the loop together.
+                converged = [self._convergence.update(all_rollout_stats.total_return / n_rollouts)]
+                dist.broadcast_object_list(converged, src=0)
+                if self._rank == 0:
+                    self._convergence.save(self._cfg.cloud_path)
+                    if self._with_wandb:
+                        wandb.log(dict(global_step=self._global_step, **self._convergence.summary()))
+                if converged[0]:
+                    if self._rank == 0:
+                        self._convergence.mark_converged(self._cfg.cloud_path)
+                        logger.info(
+                            f"Converged after {self._iterations_completed} iterations: moving "
+                            f"average return {self._convergence.best_moving_average:.4f} last "
+                            f"improved at iteration {self._convergence.best_iteration}."
+                        )
+                    self._cloud_checkpointer.sync()
+                    break
 
             if self._exclusive_inference_and_learning:
                 # inference and learning don't fit in memory together; free up CUDA memory:

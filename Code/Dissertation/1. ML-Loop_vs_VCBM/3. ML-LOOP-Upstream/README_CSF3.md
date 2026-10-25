@@ -29,6 +29,8 @@ algorithm, the loss, the advantage, or the agent.
 | `phi_agents/rl/conf/rl/gpu_allocation/{two,four}_shared.yaml` | New: training and vLLM share the same GPUs | CSF3 allows 4 GPUs per job; upstream's 32B layout needs 8 |
 | `phi_agents/rl/conf/config.yaml`, `conf/global/appworld.yaml` | W&B entity and project names | Logging only |
 | `scripts/torch_dist_healthcheck.py` | The fork's version | Used by the job script before training |
+| `scripts/sync_wandb_logs.sh` (new) | The fork's login-node helper | Uploads the offline W&B runs from `_wandb_logs/wandb`; never runs during training |
+| `phi_agents/rl/convergence.py` (new), `train.py`, `conf/config.yaml` | Optional plateau-based stopping (`rl.convergence.enable`, off by default): stop when the 20-iteration moving average of training return has not improved by more than 0.01 for 40 iterations, after at least 100 | Lets both arms run until convergence instead of a fixed length. The code is byte-identical to `2. VCC-Experiment`'s, so the rule cannot favour either arm, and iterations-to-convergence becomes a comparison metric. Not part of upstream; it is not in `CSF3_INFRA_PATCH.diff`. |
 
 ## Running
 

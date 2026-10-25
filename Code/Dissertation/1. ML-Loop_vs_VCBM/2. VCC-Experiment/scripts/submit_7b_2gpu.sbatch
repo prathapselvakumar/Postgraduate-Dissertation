@@ -18,15 +18,17 @@
 #   sbatch scripts/submit_7b_2gpu.sbatch loop 1     # plain LOOP (beta = 0), seed 1
 #   ITERS=2 sbatch scripts/submit_7b_2gpu.sbatch vcbm 1   # smoke test first
 #
-# If a run hits the 4-day limit, resubmit the same command
-# (same arm and seed) to resume from the last checkpoint, e.g. chained:
-#   sbatch --dependency=afterany:<previous job id> scripts/submit_7b_2gpu.sbatch vcbm 1
+# Runs until convergence: training stops itself when the return plateaus, and the job
+# re-queues itself across the 4-day limit (resuming from the last checkpoint) until then.
+# ITERS caps the total (default 600); CONVERGE=false runs exactly ITERS iterations;
+# AUTO_RESUBMIT=0 disables re-queueing. Stop a chain with: scancel -u $USER
 
 set -euo pipefail
 
 ARM="${1:-vcbm}"
 SEED="${2:-1}"
-ITERS="${ITERS:-200}"
+ITERS="${ITERS:-600}"          # hard cap; convergence normally stops earlier
+CONVERGE="${CONVERGE:-true}"   # CONVERGE=false runs exactly $ITERS iterations
 case "$ARM" in
     vcbm) BETA=1.0 ;;
     loop) BETA=0.0 ;;
@@ -35,7 +37,7 @@ esac
 EXPERIMENT="csf3_7b_2gpu_${ARM}_s${SEED}"
 echo "Arm         : $ARM (vcc_blend_alpha=$BETA)"
 echo "Seed        : $SEED"
-echo "Iterations  : $ITERS"
+echo "Iterations  : up to $ITERS (stop on convergence: $CONVERGE)"
 echo "Experiment  : $EXPERIMENT"
 
 echo "=================================================="
@@ -59,6 +61,44 @@ cd "$PROJECT_ROOT"
 # same conda env, and whichever was installed last wins. Put this folder first on the import
 # path so the job always runs its own code (checked after the environment is set up below).
 export PYTHONPATH="$PROJECT_ROOT${PYTHONPATH:+:$PYTHONPATH}"
+
+########################################################################
+# Run until convergence
+########################################################################
+# Training stops itself when the return plateaus (rl.convergence, see
+# phi_agents/rl/convergence.py) and writes $CKPT_DIR/CONVERGED. Each job queues its own
+# continuation, which only runs if this job is cut off by the time limit; a converged,
+# finished, failed or cancelled job ends the chain.
+
+CKPT_DIR="$HOME/scratch/checkpoints/$EXPERIMENT"
+CHAIN_DEPTH="${CHAIN_DEPTH:-0}"
+MAX_CHAIN="${MAX_CHAIN:-10}"
+
+if [ -f "$CKPT_DIR/CONVERGED" ]; then
+    echo "Already converged, nothing to do: $(cat "$CKPT_DIR/CONVERGED")"
+    exit 0
+fi
+
+if [ -n "${PREV_JOB:-}" ]; then
+    PREV_STATE="$(sacct -j "$PREV_JOB" -X -n -o State | head -1 | awk '{print $1}')"
+    echo "Previous segment $PREV_JOB ended with state: $PREV_STATE"
+    case "$PREV_STATE" in
+        TIMEOUT|PREEMPTED|NODE_FAIL) ;;
+        *)
+            echo "Previous segment was not cut off by the cluster; not continuing."
+            exit 0
+            ;;
+    esac
+fi
+
+NEXT_JOB=""
+if [ "${AUTO_RESUBMIT:-1}" = "1" ] && [ "$CHAIN_DEPTH" -lt "$MAX_CHAIN" ]; then
+    NEXT_JOB="$(sbatch --parsable --dependency=afterany:"$SLURM_JOB_ID" \
+        --export=ALL,PREV_JOB="$SLURM_JOB_ID",CHAIN_DEPTH="$((CHAIN_DEPTH + 1))" \
+        "$PROJECT_ROOT/scripts/submit_7b_2gpu.sbatch" "$@")"
+    echo "Queued continuation $NEXT_JOB (segment $((CHAIN_DEPTH + 1)) of at most $MAX_CHAIN);"
+    echo "it only runs if this job hits the time limit."
+fi
 
 echo "Project Root : $PROJECT_ROOT"
 pwd
@@ -249,6 +289,7 @@ poetry run accelerate launch \
     wandb.group=CSF3-7B \
     wandb.run=$EXPERIMENT \
     rl.params.total_iterations=$ITERS \
+    rl.convergence.enable=$CONVERGE \
     rl.max_ckpts=20 \
     rl.params.scenarios_per_iteration=12 \
     rl.params.rollouts_per_scenario=4 \
@@ -261,3 +302,11 @@ poetry run accelerate launch \
     rl.vcc_top_k=6 \
     rl.vcc_alpha=0.05 \
     rl.vcc_blend_alpha=$BETA
+
+# Training exited cleanly (converged or reached the cap): the queued continuation is not needed.
+if [ -n "$NEXT_JOB" ]; then
+    scancel "$NEXT_JOB" && echo "Cancelled continuation $NEXT_JOB."
+fi
+if [ -f "$CKPT_DIR/CONVERGED" ]; then
+    echo "Converged: $(cat "$CKPT_DIR/CONVERGED")"
+fi
