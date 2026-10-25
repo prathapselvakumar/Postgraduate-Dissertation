@@ -83,8 +83,9 @@ Postgraduate-Dissertation/
 ├── Code/
 │   ├── Dissertation/
 │   │   ├── 1. ML-Loop_vs_VCBM/
-│   │   │   ├── 1. LOOP-Baseline/      LOOP training and evaluation on AppWorld
-│   │   │   └── 2. VCC-Experiment/     The same pipeline with VCBM credit (phi_agents/rl/vcc/)
+│   │   │   ├── 1. LOOP-Baseline/      Fork used for the published 7B baseline run (contains the VCBM code path)
+│   │   │   ├── 2. VCC-Experiment/     The same pipeline with VCBM credit (phi_agents/rl/vcc/)
+│   │   │   └── 3. ML-LOOP-Upstream/   Apple's ml-loop plus CSF3 infrastructure fixes only, no VCBM (32B baseline)
 │   │   ├── 2. Rudder_vs_VCBM/
 │   │   │   ├── 1. RUDDER-Baseline/    RUDDER on the watch-repair task
 │   │   │   ├── 2. VCBM-Experiment/    VCBM on the watch-repair task

@@ -55,6 +55,11 @@ PROJECT_ROOT="${SLURM_SUBMIT_DIR}"
 
 cd "$PROJECT_ROOT"
 
+# 2. VCC-Experiment and 3. ML-LOOP-Upstream both install a package named phi-agents into the
+# same conda env, and whichever was installed last wins. Put this folder first on the import
+# path so the job always runs its own code (checked after the environment is set up below).
+export PYTHONPATH="$PROJECT_ROOT${PYTHONPATH:+:$PYTHONPATH}"
+
 echo "Project Root : $PROJECT_ROOT"
 pwd
 echo
@@ -192,6 +197,14 @@ echo "Running NCCL health check..."
 
 poetry run python scripts/torch_dist_healthcheck.py
 
+echo
+PHI_AGENTS_DIR="$(poetry run python -c 'import phi_agents, os; print(os.path.dirname(os.path.abspath(phi_agents.__file__)))')"
+echo "phi_agents imported from: $PHI_AGENTS_DIR"
+if [ "$PHI_AGENTS_DIR" != "$(pwd -P)/phi_agents" ] && [ "$PHI_AGENTS_DIR" != "$PROJECT_ROOT/phi_agents" ]; then
+    echo "phi_agents resolves outside $PROJECT_ROOT; refusing to train with another folder's code."
+    exit 1
+fi
+
 ########################################################################
 # Training
 ########################################################################
@@ -216,4 +229,36 @@ echo
 echo "Launching Training..."
 echo
 
-poetry run accelerate launch     --config_file phi_agents/rl/conf/accelerate_config.yaml     --num_processes=4     phi_agents/rl/train.py     +global@_global_=appworld     rl/gpu_allocation=four_shared     rl.async_rollouts=False     llm=qwen_2_5_32b_train     llm.vllm_server.gpus_per_vllm_server=4     llm.vllm_server.eager_mode=true     llm.max_gpu_mem_utilization=0.4     llm.vllm_server.max_model_len=16384     rl.inference_requires_memory_gb=34     rl.learning_requires_memory_gb=42     rl.seed=$SEED     experiment_name=$EXPERIMENT     rl.cloud_path=$HOME/scratch/checkpoints/$EXPERIMENT     wandb.project=ml-loop     wandb.group=CSF3-32B     wandb.run=$EXPERIMENT     rl.params.total_iterations=$ITERS     rl.max_ckpts=20     rl.params.scenarios_per_iteration=12     rl.params.rollouts_per_scenario=4     rl.params.minibatch_size=32     rl.eval.eval_every_n_iterations=5     rl.eval.overrides.rl.num_scenario_runners=12     rl.eval.overrides.rl.params.scenarios_per_iteration=10     rl.vcc_weighting_mode=unified     rl.vcc_temperature=0.5     rl.vcc_top_k=6     rl.vcc_alpha=0.05     rl.vcc_blend_alpha=$BETA
+poetry run accelerate launch \
+    --config_file phi_agents/rl/conf/accelerate_config.yaml \
+    --num_processes=4 \
+    phi_agents/rl/train.py \
+    +global@_global_=appworld \
+    rl/gpu_allocation=four_shared \
+    rl.async_rollouts=False \
+    llm=qwen_2_5_32b_train \
+    llm.vllm_server.gpus_per_vllm_server=4 \
+    llm.vllm_server.eager_mode=true \
+    llm.max_gpu_mem_utilization=0.4 \
+    llm.vllm_server.max_model_len=16384 \
+    rl.inference_requires_memory_gb=34 \
+    rl.learning_requires_memory_gb=42 \
+    rl.seed=$SEED \
+    experiment_name=$EXPERIMENT \
+    rl.cloud_path=$HOME/scratch/checkpoints/$EXPERIMENT \
+    wandb.project=ml-loop \
+    wandb.group=CSF3-32B \
+    wandb.run=$EXPERIMENT \
+    rl.params.total_iterations=$ITERS \
+    rl.max_ckpts=20 \
+    rl.params.scenarios_per_iteration=12 \
+    rl.params.rollouts_per_scenario=4 \
+    rl.params.minibatch_size=32 \
+    rl.eval.eval_every_n_iterations=5 \
+    rl.eval.overrides.rl.num_scenario_runners=12 \
+    rl.eval.overrides.rl.params.scenarios_per_iteration=10 \
+    rl.vcc_weighting_mode=unified \
+    rl.vcc_temperature=0.5 \
+    rl.vcc_top_k=6 \
+    rl.vcc_alpha=0.05 \
+    rl.vcc_blend_alpha=$BETA

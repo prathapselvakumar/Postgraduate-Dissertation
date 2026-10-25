@@ -38,6 +38,24 @@ async def execute_with_bookmark(task_id: str = Body(...), code: str = Body(...))
     return {"output": {"output": output, "is_bookmark": is_bookmark}}"""
 
 
+def find_cli_python(appworld_bin: Path) -> str:
+    """Return the Python interpreter that runs the appworld CLI.
+
+    pip writes `#!/path/to/python` for normal paths, but when the venv path contains spaces
+    it writes a `#!/bin/sh` wrapper that re-execs Python, so the shebang alone is not enough.
+    """
+    sibling = appworld_bin.parent / "python"
+    if sibling.exists():
+        return str(sibling)
+    lines = appworld_bin.read_text(errors="replace").splitlines()
+    if lines and lines[0].startswith("#!") and "python" in lines[0]:
+        return lines[0][2:].strip()
+    for line in lines[1:3]:  # the /bin/sh wrapper: '''exec' "/path/python" "$0" "$@"
+        if "exec" in line and '"' in line:
+            return line.split('"')[1]
+    return sys.executable
+
+
 def find_environment_py() -> Path:
     if len(sys.argv) > 1:
         return Path(sys.argv[1])
@@ -48,9 +66,7 @@ def find_environment_py() -> Path:
     if not appworld_bin:
         sys.exit("Error: no appworld-env/bin/appworld here and no `appworld` on PATH.")
 
-    # Ask the interpreter that runs the appworld CLI where its package lives.
-    shebang = Path(appworld_bin).read_text(errors="replace").splitlines()[0]
-    python = shebang[2:].strip() if shebang.startswith("#!") else sys.executable
+    python = find_cli_python(Path(appworld_bin))
     result = subprocess.run(
         [python, "-c", "import appworld, os; print(os.path.dirname(appworld.__file__))"],
         capture_output=True, text=True,

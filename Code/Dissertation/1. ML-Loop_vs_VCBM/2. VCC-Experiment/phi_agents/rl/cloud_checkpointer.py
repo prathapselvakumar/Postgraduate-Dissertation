@@ -184,7 +184,11 @@ class CloudCheckpointer:
             self._start_event.set()
 
     def on_step_end(self) -> None:
-        self.sync()
+        # Deliberately does not call sync() here: on_save() already syncs (rank-0-only,
+        # after this barrier) before starting the next upload, so waiting here too just
+        # adds a redundant, rank-0-only stall of up to UPLOAD_TIMEOUT_S ahead of a barrier
+        # every other rank has already reached -- exactly the asymmetric-collective shape
+        # that trips the NCCL watchdog on a slow scratch-filesystem upload.
         if torch.distributed.is_initialized():
             torch.distributed.barrier()
 
