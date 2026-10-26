@@ -30,6 +30,22 @@
 +                )
          self._server = None
          self._task_id = None
+--- a/phi_agents/evals/appworld_evals.py
++++ b/phi_agents/evals/appworld_evals.py
+@@ -335,7 +335,12 @@
+                 llm=llm,
+                 with_evaluation=with_evaluation,
+             )
+-        except (AppWorldExecutionError, requests.HTTPError, requests.ConnectionError):
++        # requests.RequestException covers HTTPError and ConnectionError and also Timeout:
++        # a call such as task_completed() or evaluate() that hits the 100 s read timeout
++        # (e.g. while agent code is still running in the server) used to escape this loop,
++        # kill the rank, and deadlock the others until the NCCL watchdog fired (CSF3 job
++        # 23794151). restart() also kills a server stuck executing agent code.
++        except (AppWorldExecutionError, requests.RequestException):
+             logger.exception("Caught exception while running vllm inference")
+             world.restart()
+             continue
 --- a/phi_agents/rl/train.py
 +++ b/phi_agents/rl/train.py
 @@ -9,10 +9,12 @@
@@ -46,7 +62,35 @@
  from dataclasses import dataclass
  from pathlib import Path
  from typing import TYPE_CHECKING, Any, cast
-@@ -448,13 +450,27 @@
+@@ -40,6 +42,7 @@
+     get_last_checkpoint,
+ )
+ from phi_agents.rl.config import get_config
++from phi_agents.rl.convergence import ConvergenceTracker
+ from phi_agents.rl.parallel_scenario_sampler import ParallelScenarioSampler
+ from phi_agents.rl.rl_utils import (
+     Baseline,
+@@ -377,6 +380,19 @@
+         self._global_step = 0
+         self._rollouts_generated = self._output_tokens_generated = 0
+ 
++        # Optional plateau-based stopping (rl.convergence.enable); total_iterations stays the cap.
++        conv_cfg = self._cfg.get("convergence", None)
++        self._convergence: ConvergenceTracker | None = (
++            ConvergenceTracker(
++                window=conv_cfg.window,
++                patience=conv_cfg.patience,
++                min_delta=conv_cfg.min_delta,
++                min_iterations=conv_cfg.min_iterations,
++            )
++            if conv_cfg is not None and conv_cfg.get("enable", False)
++            else None
++        )
++
+         self._with_wandb = self._rank == 0 and self._wandb_cfg.enable
+         wandb_run_name: str | None = None
+         if self._with_wandb:
+@@ -448,13 +464,27 @@
                  lora_dir.mkdir(parents=True, exist_ok=True)
  
                  self._rank0_logger.info(f"Saving LORA adapter...")
@@ -81,7 +125,20 @@
                  self._accelerator.wait_for_everyone()
                  self._rank0_logger.info(f"Saving LORA adapter...Done!")
          else:
-@@ -1510,6 +1526,25 @@
+@@ -1124,7 +1154,11 @@
+ 
+         if dist.is_initialized():
+             avg_losses_tensor = torch.tensor(avg_loss, device=self._device)
+-            dist.reduce(avg_losses_tensor, dst=0, op=dist.ReduceOp.AVG)
++            # all_reduce, not reduce(dst=0): every rank must see the same average, because
++            # each rank decides from it whether to skip the optimizer step. With reduce(),
++            # a NaN on one rank made rank 0 skip while the others entered the optimizer's
++            # grad-norm all_reduce, deadlocking until the NCCL watchdog aborted the job.
++            dist.all_reduce(avg_losses_tensor, op=dist.ReduceOp.AVG)
+             avg_loss = avg_losses_tensor.item()
+ 
+             log_iw_tensor = torch.from_numpy(log_importance_weights).to(self._device)
+@@ -1510,6 +1544,25 @@
                      f"CUDA mem reserved {torch.cuda.memory_reserved() / 1024**3:.1f} GB"
                  )
  
@@ -107,7 +164,7 @@
      def _run(self) -> None:
          with barrier_guard(before=False, after=True):
              self._rank0_logger.info("Starting inference servers...")
-@@ -1518,7 +1553,9 @@
+@@ -1518,11 +1571,21 @@
              # check if there is an existing checkpoint, and if so, resume from it
              if (last_checkpoint := get_last_checkpoint(self._cfg.cloud_path)) is not None:
                  last_checkpoint_local_path = self._local_path / last_checkpoint.name
@@ -118,7 +175,19 @@
                  self._load_trainer_state(last_checkpoint_local_path)
              else:
                  last_checkpoint_local_path = None
-@@ -1595,7 +1632,7 @@
+ 
++            if self._convergence is not None:
++                self._convergence.load(self._cfg.cloud_path, self._iterations_completed)
++                self._rank0_logger.info(
++                    f"Convergence tracking on: resumed with {len(self._convergence.returns)} "
++                    f"iterations of history, best moving average at iteration "
++                    f"{self._convergence.best_iteration}"
++                )
++
+         if not self._exclusive_inference_and_learning:
+             self._rank0_logger.info(
+                 "Learning and inference fit into memory together, initialize the model while inference servers are starting..."
+@@ -1595,7 +1658,7 @@
                  self._cfg.async_rollouts
                  and self._iterations_completed + 1 < self._cfg.params.total_iterations
              ):
@@ -127,7 +196,34 @@
  
                  # request rollout generation for the next iteration right away
                  self._rollout_worker.request_rollout_generation(
-@@ -1769,7 +1806,7 @@
+@@ -1748,6 +1811,26 @@
+             self._save_lora_checkpoint(last_checkpoint_local_path)
+             self._cloud_checkpointer.on_save()
+ 
++            if self._convergence is not None:
++                # Every rank sees the same reduced stats, but broadcast rank 0's decision so
++                # all ranks are guaranteed to leave the loop together.
++                converged = [self._convergence.update(all_rollout_stats.total_return / n_rollouts)]
++                dist.broadcast_object_list(converged, src=0)
++                if self._rank == 0:
++                    self._convergence.save(self._cfg.cloud_path)
++                    if self._with_wandb:
++                        wandb.log(dict(global_step=self._global_step, **self._convergence.summary()))
++                if converged[0]:
++                    if self._rank == 0:
++                        self._convergence.mark_converged(self._cfg.cloud_path)
++                        logger.info(
++                            f"Converged after {self._iterations_completed} iterations: moving "
++                            f"average return {self._convergence.best_moving_average:.4f} last "
++                            f"improved at iteration {self._convergence.best_iteration}."
++                        )
++                    self._cloud_checkpointer.sync()
++                    break
++
+             if self._exclusive_inference_and_learning:
+                 # inference and learning don't fit in memory together; free up CUDA memory:
+                 with barrier_guard():
+@@ -1769,7 +1852,7 @@
                  self._model = self._optimizer = None
  
              if not self._cfg.async_rollouts:
@@ -136,7 +232,7 @@
  
                  # start new rollout generation once we finished learning
                  self._rollout_worker.request_rollout_generation(
-@@ -1806,6 +1843,15 @@
+@@ -1806,6 +1889,15 @@
  
  
  def main() -> int:
@@ -152,7 +248,7 @@
      logger.info(sys.argv[1:])
      _cfg = get_config(mode="train", overrides=sys.argv[1:])
  
-@@ -1815,7 +1861,12 @@
+@@ -1815,7 +1907,12 @@
  
      from accelerate.utils import InitProcessGroupKwargs
  
@@ -364,15 +460,25 @@
  
 --- a/phi_agents/rl/conf/config.yaml
 +++ b/phi_agents/rl/conf/config.yaml
-@@ -12,6 +12,7 @@
+@@ -12,6 +12,17 @@
  rl:
    seed: null
  
++  # Plateau-based stopping (phi_agents/rl/convergence.py). Off by default; total_iterations
++  # remains the hard cap. Converged = the `window`-iteration moving average of training return
++  # has not improved by more than `min_delta` for `patience` iterations, after `min_iterations`.
++  convergence:
++    enable: false
++    window: 20
++    patience: 40
++    min_delta: 0.01
++    min_iterations: 100
++
 +
    fsdp: True
  
    cloud_path: experiments/${experiment_name}/${now:%Y-%m-%d_%H-%M-%S}/
-@@ -51,7 +52,7 @@
+@@ -51,7 +62,7 @@
  
  wandb:
    enable: True
@@ -619,6 +725,105 @@
      mp.spawn(run, args=(world_size,), nprocs=world_size, join=True)
      print("Healthcheck complete!")
 --- /dev/null
++++ b/phi_agents/rl/convergence.py
+@@ -0,0 +1,96 @@
++"""Plateau-based stopping rule for RL training runs.
++
++A run has converged when the moving average of the per-iteration training return has not
++improved by more than `min_delta` for `patience` iterations, after at least `min_iterations`.
++The return history is persisted next to the checkpoints, so the rule carries over when a run
++is resumed in a new Slurm job, and a `CONVERGED` marker is written when it fires so the job
++scripts stop resubmitting.
++
++The rule is identical for every credit-assignment method, so iterations-to-convergence can be
++compared between arms. It reads the training batch's return, which is noisy (48 rollouts per
++iteration); the moving-average window exists to smooth that.
++"""
++
++import json
++from dataclasses import dataclass, field
++from pathlib import Path
++
++MARKER_NAME = "CONVERGED"
++HISTORY_NAME = "convergence.json"
++
++
++@dataclass
++class ConvergenceTracker:
++    window: int = 20
++    patience: int = 40
++    min_delta: float = 0.01
++    min_iterations: int = 100
++    returns: list[float] = field(default_factory=list)
++    best_moving_average: float = float("-inf")
++    best_iteration: int = 0
++
++    def update(self, avg_return: float) -> bool:
++        """Record one iteration's return; True once the run has converged."""
++        self.returns.append(float(avg_return))
++        iteration = len(self.returns)
++        if iteration >= self.window:
++            moving_average = sum(self.returns[-self.window :]) / self.window
++            if moving_average > self.best_moving_average + self.min_delta:
++                self.best_moving_average = moving_average
++                self.best_iteration = iteration
++        return (
++            iteration >= self.min_iterations
++            and iteration >= self.window
++            and iteration - self.best_iteration >= self.patience
++        )
++
++    def summary(self) -> dict[str, float]:
++        latest = (
++            sum(self.returns[-self.window :]) / self.window
++            if len(self.returns) >= self.window
++            else float("nan")
++        )
++        return {
++            "convergence/moving_avg_return": latest,
++            "convergence/best_moving_avg_return": self.best_moving_average,
++            "convergence/iterations_since_best": float(len(self.returns) - self.best_iteration),
++        }
++
++    # Persistence: plain files in the (local, shared-filesystem) checkpoint directory.
++    @staticmethod
++    def _dir(cloud_path: str) -> Path | None:
++        return None if "://" in cloud_path else Path(cloud_path)
++
++    def save(self, cloud_path: str) -> None:
++        directory = self._dir(cloud_path)
++        if directory is None:
++            return
++        directory.mkdir(parents=True, exist_ok=True)
++        state = dict(returns=self.returns, best_moving_average=self.best_moving_average,
++                     best_iteration=self.best_iteration)
++        tmp = directory / (HISTORY_NAME + ".tmp")
++        tmp.write_text(json.dumps(state))
++        tmp.replace(directory / HISTORY_NAME)
++
++    def load(self, cloud_path: str, iterations_completed: int) -> None:
++        """Restore history, truncated to the checkpoint actually resumed from."""
++        directory = self._dir(cloud_path)
++        if directory is None or not (directory / HISTORY_NAME).exists():
++            return
++        state = json.loads((directory / HISTORY_NAME).read_text())
++        self.returns = list(state["returns"])[:iterations_completed]
++        # Recompute the best point from the truncated history rather than trusting the file.
++        self.best_moving_average, self.best_iteration = float("-inf"), 0
++        history, self.returns = self.returns, []
++        for value in history:
++            self.update(value)
++
++    def mark_converged(self, cloud_path: str) -> None:
++        directory = self._dir(cloud_path)
++        if directory is None:
++            return
++        (directory / MARKER_NAME).write_text(
++            json.dumps(dict(iteration=len(self.returns),
++                            best_iteration=self.best_iteration,
++                            best_moving_average=self.best_moving_average))
++        )
+--- /dev/null
 +++ b/phi_agents/rl/conf/rl/gpu_allocation/four_shared.yaml
 @@ -0,0 +1,2 @@
 +learning_gpus: [0,1,2,3]
@@ -629,3 +834,61 @@
 @@ -0,0 +1,2 @@
 +learning_gpus: [0,1]
 +inference_gpus: [0,1]
+--- /dev/null
++++ b/scripts/sync_wandb_logs.sh
+@@ -0,0 +1,55 @@
++#!/bin/bash
++# Push offline W&B run logs (written during CSF3 training, WANDB_MODE=offline)
++# to the cloud. Run this on the CSF3 LOGIN node (has internet), not on a
++# compute node — compute nodes are firewalled off from wandb.ai.
++#
++# Usage (from the project root, e.g. "2. VCC-Experiment/"):
++#   bash scripts/sync_wandb_logs.sh
++#
++# Optionally restrict to one experiment's runs:
++#   bash scripts/sync_wandb_logs.sh csf3_7b_2gpu_mlloop_s1
++
++set -euo pipefail
++
++SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
++PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
++WANDB_LOG_DIR="$PROJECT_ROOT/_wandb_logs/wandb"
++
++if [ -f "$PROJECT_ROOT/ml-loop.env" ]; then
++    source "$PROJECT_ROOT/ml-loop.env"
++elif [ -f "$HOME/.secrets/ml-loop.env" ]; then
++    source "$HOME/.secrets/ml-loop.env"
++fi
++
++if [ -z "${WANDB_API_KEY:-}" ] || [ "${WANDB_API_KEY:-}" = "dummy_key_for_offline_use" ]; then
++    echo "WANDB_API_KEY is not set to a real key (ml-loop.env / ~/.secrets/ml-loop.env)." >&2
++    echo "Set it there first, then re-run this script." >&2
++    exit 1
++fi
++
++unset WANDB_MODE
++
++FILTER="${1:-}"
++
++if [ ! -d "$WANDB_LOG_DIR" ]; then
++    echo "No wandb log dir found at $WANDB_LOG_DIR" >&2
++    exit 1
++fi
++
++shopt -s nullglob
++RUN_DIRS=("$WANDB_LOG_DIR"/offline-run-*"$FILTER"*)
++shopt -u nullglob
++
++if [ ${#RUN_DIRS[@]} -eq 0 ]; then
++    echo "No offline run directories matched under $WANDB_LOG_DIR (filter: '${FILTER:-<none>}')" >&2
++    exit 1
++fi
++
++echo "Syncing ${#RUN_DIRS[@]} offline run(s) to wandb.ai:"
++printf '  %s\n' "${RUN_DIRS[@]}"
++echo
++
++poetry run wandb sync "${RUN_DIRS[@]}"
++
++echo
++echo "Done."

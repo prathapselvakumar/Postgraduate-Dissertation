@@ -1154,7 +1154,11 @@ class RLOOTrainer:
 
         if dist.is_initialized():
             avg_losses_tensor = torch.tensor(avg_loss, device=self._device)
-            dist.reduce(avg_losses_tensor, dst=0, op=dist.ReduceOp.AVG)
+            # all_reduce, not reduce(dst=0): every rank must see the same average, because
+            # each rank decides from it whether to skip the optimizer step. With reduce(),
+            # a NaN on one rank made rank 0 skip while the others entered the optimizer's
+            # grad-norm all_reduce, deadlocking until the NCCL watchdog aborted the job.
+            dist.all_reduce(avg_losses_tensor, op=dist.ReduceOp.AVG)
             avg_loss = avg_losses_tensor.item()
 
             log_iw_tensor = torch.from_numpy(log_importance_weights).to(self._device)

@@ -346,7 +346,12 @@ def run_vllm_inference_single_server_single_task(
                 llm=llm,
                 with_evaluation=with_evaluation,
             )
-        except (AppWorldExecutionError, requests.HTTPError, requests.ConnectionError):
+        # requests.RequestException covers HTTPError and ConnectionError and also Timeout:
+        # a call such as task_completed() or evaluate() that hits the 100 s read timeout
+        # (e.g. while agent code is still running in the server) used to escape this loop,
+        # kill the rank, and deadlock the others until the NCCL watchdog fired (VCBM job
+        # 23794151). restart() also kills a server stuck executing agent code.
+        except (AppWorldExecutionError, requests.RequestException):
             logger.exception("Caught exception while running vllm inference")
             world.restart()
             continue

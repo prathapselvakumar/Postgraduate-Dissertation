@@ -7,7 +7,7 @@
 #   bash scripts/sync_wandb_logs.sh
 #
 # Optionally restrict to one experiment's runs:
-#   bash scripts/sync_wandb_logs.sh csf3_7b_2gpu_90iter_vcbm_r2
+#   bash scripts/sync_wandb_logs.sh csf3_7b_2gpu_mlloop_s1
 
 set -euo pipefail
 
