@@ -258,8 +258,22 @@ echo
 echo "Launching Training..."
 echo
 
+# Two 2-GPU jobs can share one 4-GPU node, so accelerate's default rendezvous port
+# (29500) may already be taken by the other job (EADDRINUSE). Use a free port instead.
+MAIN_PORT="$(python -c 'import socket; s = socket.socket(); s.bind(("", 0)); print(s.getsockname()[1])')"
+echo "Distributed rendezvous port: $MAIN_PORT"
+
+# Ray joins the newest cluster under its temp root when ray.init() has no address
+# (phi_agents/rl/utils/ray_utils.py). On a shared node that could be the other job's
+# cluster, so give this job its own temp root and never inherit a RAY_ADDRESS.
+unset RAY_ADDRESS
+export RAY_TMPDIR="/tmp/ray_${SLURM_JOB_ID}"
+mkdir -p "$RAY_TMPDIR"
+echo "Ray temp dir: $RAY_TMPDIR"
+
 poetry run accelerate launch \
     --config_file phi_agents/rl/conf/accelerate_config.yaml \
+    --main_process_port "$MAIN_PORT" \
     --num_processes=2 \
     phi_agents/rl/train.py \
     +global@_global_=appworld \
