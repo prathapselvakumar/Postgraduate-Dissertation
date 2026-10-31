@@ -114,7 +114,7 @@ class AppWorldInterface:
     """Run AppWorld without importing appworld."""
 
     def __init__(
-        self, stdout_to_devnull: bool, timeout_seconds: int = 100, max_restarts_on_error: int = 2
+        self, stdout_to_devnull: bool, timeout_seconds: int = 300, max_restarts_on_error: int = 2
     ) -> None:
         """Construct AppWorldInterface.
 
@@ -160,10 +160,13 @@ class AppWorldInterface:
                 for attempt_wait in range(self._max_wait_tries):
                     try:
                         response = requests.get(
-                            f"{self._remote_environment_url}/tasks/{DUMMY_TASK_ID}"
+                            f"{self._remote_environment_url}/tasks/{DUMMY_TASK_ID}",
+                            timeout=30,
                         )
-                    except requests.exceptions.ConnectionError:
-                        pass
+                    except requests.exceptions.RequestException:
+                        # ConnectionError while the server is still starting; Timeout if
+                        # it is up but stalled (e.g. slow shared filesystem). Keep waiting.
+                        response = None
                     if response is not None:
                         # sanity check on response
                         output = response.json()["output"]
@@ -376,9 +379,11 @@ class AppWorldInterface:
 
     def restart(self) -> None:
         logger.info(f"Attempting to restart AppWorld server.")
-        if self.clean:
-            raise ValueError("Server was not already started.")
-        self.close_server()
+        # A previous restart can fail after the old server was closed (e.g. the new one
+        # did not come up during a shared-filesystem stall). Start a fresh server in that
+        # case instead of raising, so the caller's retry loop can keep trying.
+        if not self.clean:
+            self.close_server()
         assert self.clean
         self._init_server()
         self._wait_for_server_ready()

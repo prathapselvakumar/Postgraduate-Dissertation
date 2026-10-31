@@ -4,6 +4,7 @@
 #
 
 import json
+import time
 from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -319,13 +320,13 @@ def run_vllm_inference_single_server_single_task(
     appworld_config: AppWorldConfig,
     llm: TrainableLLM,
     with_evaluation: bool,
-    max_retries: int = 5,
+    max_retries: int = 10,
 ) -> Episode:
     """Run inference on a single task for a vLLM-based agent.
 
     This includes an outer loop to catch spontaneous AppWorld crashes.
     """
-    for _ in range(max_retries):
+    for attempt in range(1, max_retries + 1):
         try:
             episode = _run_vllm_inference_single_server_single_task(
                 world=world,
@@ -335,14 +336,21 @@ def run_vllm_inference_single_server_single_task(
                 llm=llm,
                 with_evaluation=with_evaluation,
             )
-        # requests.RequestException covers HTTPError and ConnectionError and also Timeout:
-        # a call such as task_completed() or evaluate() that hits the 100 s read timeout
-        # (e.g. while agent code is still running in the server) used to escape this loop,
-        # kill the rank, and deadlock the others until the NCCL watchdog fired (CSF3 job
-        # 23794151). restart() also kills a server stuck executing agent code.
-        except (AppWorldExecutionError, requests.RequestException):
-            logger.exception("Caught exception while running vllm inference")
-            world.restart()
+        # Any failure in one task (a request Timeout or HTTPError, an AppWorld execution
+        # error, or a server left closed by a failed restart) must not escape: it would kill
+        # this rank while the others wait in a collective until the NCCL watchdog aborts the
+        # job (CSF3 jobs 23794150, 23794151, 23889244, 23940481). Restart the server and
+        # retry the task; if the restart itself fails, back off and try again next round.
+        except Exception:
+            logger.exception(
+                f"Caught exception while running vllm inference (attempt {attempt}/{max_retries})"
+            )
+            try:
+                world.restart()
+            except Exception:
+                backoff_s = min(60 * attempt, 600)
+                logger.exception(f"AppWorld restart failed; retrying in {backoff_s} s")
+                time.sleep(backoff_s)
             continue
         break
     else:  # Ran the loop for max_retries but never hit 'break'

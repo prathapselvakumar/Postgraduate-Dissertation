@@ -191,6 +191,23 @@ export SCRATCH_DIR="$HOME/scratch"
 
 export APPWORLD_ROOT="$SCRATCH_DIR/appworld_data_vcc"
 
+# AppWorld reads and writes its databases under APPWORLD_ROOT. On the shared ~/scratch
+# filesystem one stall slows every AppWorld call at once (both experiments failed in the same
+# minute on 30 Oct 2026). Copy the data to node-local /tmp when it fits; anything AppWorld
+# writes there is scratch output and is discarded with the job.
+SHARED_APPWORLD_ROOT="$APPWORLD_ROOT"
+LOCAL_APPWORLD_ROOT="/tmp/appworld_${SLURM_JOB_ID}"
+NEED_MB="$(du -sm --exclude=experiments "$SHARED_APPWORLD_ROOT" | cut -f1)"
+FREE_MB="$(df -Pm /tmp | awk 'NR==2 {print $4}')"
+if command -v rsync >/dev/null && [ "$FREE_MB" -gt $((NEED_MB * 3)) ]; then
+    mkdir -p "$LOCAL_APPWORLD_ROOT/experiments"
+    rsync -a --exclude experiments "$SHARED_APPWORLD_ROOT/" "$LOCAL_APPWORLD_ROOT/"
+    export APPWORLD_ROOT="$LOCAL_APPWORLD_ROOT"
+    echo "AppWorld data on node-local disk: $APPWORLD_ROOT (${NEED_MB} MB copied)"
+else
+    echo "AppWorld data stays on shared scratch: $APPWORLD_ROOT (/tmp free ${FREE_MB} MB, need ${NEED_MB} MB x3)"
+fi
+
 export HF_HOME="$SCRATCH_DIR/.cache/huggingface"
 export TRANSFORMERS_CACHE="$HF_HOME"
 export HF_DATASETS_CACHE="$HF_HOME/datasets"

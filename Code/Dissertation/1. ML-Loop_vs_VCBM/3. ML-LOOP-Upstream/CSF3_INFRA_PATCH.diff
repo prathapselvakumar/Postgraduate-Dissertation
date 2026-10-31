@@ -1,5 +1,14 @@
 --- a/phi_agents/appworld/interface.py
 +++ b/phi_agents/appworld/interface.py
+@@ -114,7 +114,7 @@
+     """Run AppWorld without importing appworld."""
+ 
+     def __init__(
+-        self, stdout_to_devnull: bool, timeout_seconds: int = 100, max_restarts_on_error: int = 2
++        self, stdout_to_devnull: bool, timeout_seconds: int = 300, max_restarts_on_error: int = 2
+     ) -> None:
+         """Construct AppWorldInterface.
+ 
 @@ -125,8 +125,8 @@
          """
          self._server: subprocess.Popen[bytes] | None = None
@@ -11,7 +20,39 @@
          self._stdout_to_devnull = stdout_to_devnull
          self._init_server()
          self.timeout_seconds = timeout_seconds
-@@ -419,6 +419,17 @@
+@@ -160,10 +160,13 @@
+                 for attempt_wait in range(self._max_wait_tries):
+                     try:
+                         response = requests.get(
+-                            f"{self._remote_environment_url}/tasks/{DUMMY_TASK_ID}"
++                            f"{self._remote_environment_url}/tasks/{DUMMY_TASK_ID}",
++                            timeout=30,
+                         )
+-                    except requests.exceptions.ConnectionError:
+-                        pass
++                    except requests.exceptions.RequestException:
++                        # ConnectionError while the server is still starting; Timeout if
++                        # it is up but stalled (e.g. slow shared filesystem). Keep waiting.
++                        response = None
+                     if response is not None:
+                         # sanity check on response
+                         output = response.json()["output"]
+@@ -376,9 +379,11 @@
+ 
+     def restart(self) -> None:
+         logger.info(f"Attempting to restart AppWorld server.")
+-        if self.clean:
+-            raise ValueError("Server was not already started.")
+-        self.close_server()
++        # A previous restart can fail after the old server was closed (e.g. the new one
++        # did not come up during a shared-filesystem stall). Start a fresh server in that
++        # case instead of raising, so the caller's retry loop can keep trying.
++        if not self.clean:
++            self.close_server()
+         assert self.clean
+         self._init_server()
+         self._wait_for_server_ready()
+@@ -419,6 +424,17 @@
              logger.exception(
                  f"SIGINT for AppWorld server process {self.remote_environment_url} failed to terminate the process."
              )
@@ -32,20 +73,55 @@
          self._task_id = None
 --- a/phi_agents/evals/appworld_evals.py
 +++ b/phi_agents/evals/appworld_evals.py
-@@ -335,7 +335,12 @@
+@@ -4,6 +4,7 @@
+ #
+ 
+ import json
++import time
+ from abc import ABC, abstractmethod
+ from dataclasses import asdict, dataclass
+ from pathlib import Path
+@@ -319,13 +320,13 @@
+     appworld_config: AppWorldConfig,
+     llm: TrainableLLM,
+     with_evaluation: bool,
+-    max_retries: int = 5,
++    max_retries: int = 10,
+ ) -> Episode:
+     """Run inference on a single task for a vLLM-based agent.
+ 
+     This includes an outer loop to catch spontaneous AppWorld crashes.
+     """
+-    for _ in range(max_retries):
++    for attempt in range(1, max_retries + 1):
+         try:
+             episode = _run_vllm_inference_single_server_single_task(
+                 world=world,
+@@ -335,9 +336,21 @@
                  llm=llm,
                  with_evaluation=with_evaluation,
              )
 -        except (AppWorldExecutionError, requests.HTTPError, requests.ConnectionError):
-+        # requests.RequestException covers HTTPError and ConnectionError and also Timeout:
-+        # a call such as task_completed() or evaluate() that hits the 100 s read timeout
-+        # (e.g. while agent code is still running in the server) used to escape this loop,
-+        # kill the rank, and deadlock the others until the NCCL watchdog fired (CSF3 job
-+        # 23794151). restart() also kills a server stuck executing agent code.
-+        except (AppWorldExecutionError, requests.RequestException):
-             logger.exception("Caught exception while running vllm inference")
-             world.restart()
+-            logger.exception("Caught exception while running vllm inference")
+-            world.restart()
++        # Any failure in one task (a request Timeout or HTTPError, an AppWorld execution
++        # error, or a server left closed by a failed restart) must not escape: it would kill
++        # this rank while the others wait in a collective until the NCCL watchdog aborts the
++        # job (CSF3 jobs 23794150, 23794151, 23889244, 23940481). Restart the server and
++        # retry the task; if the restart itself fails, back off and try again next round.
++        except Exception:
++            logger.exception(
++                f"Caught exception while running vllm inference (attempt {attempt}/{max_retries})"
++            )
++            try:
++                world.restart()
++            except Exception:
++                backoff_s = min(60 * attempt, 600)
++                logger.exception(f"AppWorld restart failed; retrying in {backoff_s} s")
++                time.sleep(backoff_s)
              continue
+         break
+     else:  # Ran the loop for max_retries but never hit 'break'
 --- a/phi_agents/rl/train.py
 +++ b/phi_agents/rl/train.py
 @@ -9,10 +9,12 @@
