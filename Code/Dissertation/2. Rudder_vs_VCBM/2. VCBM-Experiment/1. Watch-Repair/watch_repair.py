@@ -56,7 +56,11 @@ parser.add_argument("--wandb_name", default="VCBM - WR", type=str)
 
 # VCBM hyperparameters
 parser.add_argument("--vcbm2_warmup_transitions", default=2000, type=int)
-parser.add_argument("--vcbm2_classifier_z", default=4.0, type=float)
+parser.add_argument("--vcbm2_classifier_z", default=4.0, type=float,
+                    help="Fixed bar for the legacy classifier (ignored in sequential mode).")
+parser.add_argument("--vcbm2_classifier_mode", default="legacy", choices=["legacy", "sequential"],
+                    help="legacy reproduces the published results; sequential uses a growing bar, "
+                         "sticky labels, a watchdog and a value-based test (see vcbm.py).")
 parser.add_argument("--vcbm2_forced_min_samples", default=60, type=int)
 parser.add_argument("--vcbm2_conf_z", default=2.0, type=float)
 parser.add_argument("--vcbm2_min_samples", default=8, type=int)
@@ -86,7 +90,8 @@ def run_single_seed(rnd_seed, use_wandb, seed_idx=None, total_seeds=1):
                  min_samples=args.vcbm2_min_samples,
                  eps_start=args.vcbm2_eps_start,
                  eps_decay=args.vcbm2_eps_decay,
-                 eps_min=args.vcbm2_eps_min)
+                 eps_min=args.vcbm2_eps_min,
+                 classifier_mode=args.vcbm2_classifier_mode)
 
     seed_tag = f"[seed {rnd_seed} ({seed_idx}/{total_seeds})] " if total_seeds > 1 else ""
     print(f"\n{seed_tag}Starting training: VCBM on WatchRepairEnvironment")
@@ -143,6 +148,11 @@ def run_single_seed(rnd_seed, use_wandb, seed_idx=None, total_seeds=1):
 
     discovery = ctrl.summary()
     print("\nVCBM discovered component labels:", discovery["component_labels"])
+    print(f"Classifier mode={discovery['classifier_mode']}  checks={discovery['classifier_checks']}"
+          f"  label changes={len(discovery['label_changes'])}"
+          f"  orphaned stat entries={discovery['orphaned_stat_entries']}")
+    for ch in discovery["label_changes"]:
+        print(f"  check {ch['check']} (t={ch['transitions']}): {ch['old']} -> {ch['new']}")
     print("VCBM per-decision-point value estimates:")
     for row in discovery["keys"]:
         print(f"  key={row['key']}: "
@@ -165,6 +175,7 @@ if __name__ == "__main__":
                                env="WatchRepairEnvironment",
                                vcbm2_warmup_transitions=args.vcbm2_warmup_transitions,
                                vcbm2_classifier_z=args.vcbm2_classifier_z,
+                               vcbm2_classifier_mode=args.vcbm2_classifier_mode,
                                vcbm2_forced_min_samples=args.vcbm2_forced_min_samples,
                                vcbm2_conf_z=args.vcbm2_conf_z,
                                vcbm2_eps_min=args.vcbm2_eps_min))
